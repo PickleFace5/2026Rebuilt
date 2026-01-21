@@ -2,7 +2,7 @@ import os.path
 from typing import Final
 
 import wpilib
-from commands2 import CommandScheduler, Command
+from commands2 import CommandScheduler, Command, TimedCommandRobot
 from phoenix6 import SignalLogger
 from pykit.loggedrobot import LoggedRobot
 from pykit.logger import Logger
@@ -19,7 +19,7 @@ from robot_container import RobotContainer
 from util import LoggedTracer
 
 
-class Robot(LoggedRobot):
+class Robot(TimedCommandRobot):
 
     def __init__(self) -> None:
         super().__init__()

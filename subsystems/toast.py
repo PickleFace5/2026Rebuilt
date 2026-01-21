@@ -58,7 +58,7 @@ steerRatio: Final[float] = 21.428571428571427
 
 # Ratio of 1 azimuth rotation to drive motor rotations. Find via characterization.
 couplingRatio: Final[float] = 3.5714285714285716
-couplingRatioEnable : Final[bool] = True # If it doesn't work turn this to False
+couplingRatioEnable : Final[bool] = False # If it doesn't work turn this to False
 
 # Stator limits (limits max acceleration, used to prevent brownouts)
 driveStatorLimit: Final[amperes] = 80
@@ -86,22 +86,22 @@ moduleConfigs: Final[List[ModuleConfig]] = [
         5, # Steer motor ID
         1, # Drive motor ID
         5, # Encoder ID
-        0.155029296875, # Encoder offset (zero encoders in Phoenix Tuner)
+        0.332275390625, # Encoder offset (zero encoders in Phoenix Tuner)
         True, # Invert drive motor (use if driving backwards)
-        False, # Invert steer motors (use if steering in reverse)
+        True, # Invert steer motors (use if steering in reverse)
         False # Invert encoder motors (use if steer motor position isn't working properly)
     ),
     # Front Right
     ModuleConfig(
-        2, 6, 6, -0.27978515625, True, False, False
+        6, 2, 6, -0.185302734375, False, True, False
     ),
     # Back Left
     ModuleConfig(
-        3, 7, 7, -0.241943359375, True, False, False
+        7, 3, 7, 0.151123046875, True, True, False
     ),
     # Back Right
     ModuleConfig(
-        4, 8, 8, -0.06494140625, True, False, False
+        8, 4, 8, 0.282958984375, False, True, False
     )
 ]
 

@@ -238,5 +238,6 @@ class LoggedTracer:
     @classmethod
     def record(cls, epochName: str) -> None:
         now = Timer.getFPGATimestamp()
-        Logger.recordOutput(f"LoggedTracer/{epochName}MS", (now - cls._startTime) * 1000)
+        print(f"LoggedTracer/{epochName}MS", (now - cls._startTime) * 1000)
+        #Logger.recordOutput(f"LoggedTracer/{epochName}MS", (now - cls._startTime) * 1000)
         cls._startTime = now
