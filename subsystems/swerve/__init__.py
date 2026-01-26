@@ -274,11 +274,23 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
             self._start_sim_thread()
 
     def _apply_request_internal(self, req: swerve.requests.SwerveRequest):
-        """Applies the SwerveSetpointGenerator onto given SwerveRequests."""
+        """
+        Applies the SwerveSetpointGenerator onto given SwerveRequests.
+
+        If the request has velocity x and y attributes and a rotational_rate,
+        it's a "normal" request (FieldCentric, RobotCentric, etc). If it's specifically FieldCentric,
+        convert to robot speeds before passing it into the SwerveSetpointGenerator.
+
+        Elif the request has a "speeds" attribute (ApplyRobotSpeeds), pass speeds straight into the gen.
+
+        Otherwise, the request is used for something else (hockey stop, PointAtX, etc). Simply update prevSetpoint
+        and call the request as normal.
+        """
+        # FieldCentric, RobotCentric
         if (
-                hasattr(req, "velocity_x")
-                and hasattr(req, "velocity_y")
-                and hasattr(req, "rotational_rate")
+            hasattr(req, "velocity_x")
+            and hasattr(req, "velocity_y")
+            and hasattr(req, "rotational_rate")
         ):
             target_speeds = ChassisSpeeds(
                 req.velocity_x,
@@ -286,6 +298,7 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
                 req.rotational_rate,
             )
 
+            # FieldCentric
             if "field" in type(req).__name__.lower():
                 target_speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                     req.velocity_x,
@@ -314,6 +327,7 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
                 )
             )
 
+        # ApplyRobotSpeeds
         elif hasattr(req, "speeds"):
             self._previous_setpoint = self._setpoint_generator.generateSetpoint(
                 self._previous_setpoint,
@@ -328,6 +342,7 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
                 .with_speeds(self._previous_setpoint.robot_relative_speeds)
             )
 
+        # Everything else
         else:
             self._previous_setpoint = SwerveSetpoint(
                 self._speeds(),
@@ -402,7 +417,7 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
         pose = self._pose()
         Logger.recordOutput("Drive/EstimatedPosition2d", pose)
 
-        # Calculate 3D pose based off gyro's reported Rotation3D
+        # Calculate 3D pose based off gyro's reported rotation
         rotation = self.get_rotation3d()
         Logger.recordOutput(
             "Drive/EstimatedPosition3d", Pose3d(pose).exp(
