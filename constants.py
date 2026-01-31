@@ -55,19 +55,16 @@ class Constants:
         GEAR_RATIO = None
         GAINS = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
 
     class LauncherConstants:
         GEAR_RATIO = None
         GAINS = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
 
     class FeederConstants:
         GEAR_RATIO = None
         GAINS = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
 
     class VisionConstants:
         FRONT = "limelight-fr"
@@ -127,7 +124,6 @@ def _init_hardware_configs():
                 .with_k_a(0.0)
             )
             Constants.IntakeConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.IntakeConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
 
             # Launcher
             Constants.LauncherConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
@@ -140,7 +136,6 @@ def _init_hardware_configs():
                 .with_k_a(0.0)
             )
             Constants.LauncherConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.LauncherConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
 
             # Feeder
             Constants.FeederConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
@@ -153,7 +148,6 @@ def _init_hardware_configs():
                 .with_k_a(0.0)
             )
             Constants.FeederConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.FeederConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
 
 # Initialize hardware configs at module load time
 _init_hardware_configs()
