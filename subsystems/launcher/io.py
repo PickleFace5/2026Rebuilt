@@ -10,8 +10,8 @@ from phoenix6.signals import NeutralModeValue
 from pykit.autolog import autolog
 from wpimath.units import radians, radians_per_second, volts, amperes, celsius, degrees, revolutions_per_minute
 from wpimath.system.plant import DCMotor
-from wpilib.simulation import DCMotorSim
 from wpimath.controller import ProfiledPIDController
+from wpilib.simulation import FlywheelSim
 
 from constants import Constants
 from util import tryUntilOk
@@ -126,12 +126,13 @@ class LauncherIOSim(LauncherIO):
         self._motorType = DCMotor.krakenX60(1) 
         # could be two but ill adjust when i confirm at practice (still dont have access to the cad lol)
 
-        self._simMotor = DCMotorSim(self._motorType, Constants.LauncherConstants.GEAR_RATIO, 0.1)
+        self._simMotor = FlywheelSim(self._motorType, Constants.LauncherConstants.GEAR_RATIO, 0.003)
         self._closedloop = False
 
         self._motorPosition: float = 0.0
         self._motorVelocity: float = 0.0
         self._motorAppliedVolts: float = 0.0
+        self._motorSetpointRps: float = 0.0
 
         self._controller = ProfiledPIDController(Constants.LauncherConstants.GAINS.k_p,
                                         Constants.LauncherConstants.GAINS.k_i,
@@ -139,24 +140,24 @@ class LauncherIOSim(LauncherIO):
 
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:
         """Update inputs with simulated state."""
-        # Simulate motor behavior (simple integration)
-        # In a real simulation, you'd use a physics model here
+
+        self._simMotor.update(0.02)
 
         if (self._closedloop):
-            self._motorVelocity = self._controller.calculate(self._simMotor.getAngularVelocityRPM())
+            self._motorVelocity = self._controller.calculate(self._simMotor.getAngularVelocity())
         else:
-            self._controller.reset(self._simMotor.getAngularPosition(), self._simMotor.getAngularAcceleration())
+            self._controller.reset(self._simMotor.getAngularVelocity(), self._simMotor.getAngularAcceleration())
 
         self.setMotorRPS(self._motorVelocity)
-        self._simMotor.update(0.02)
+        
 
         # Update inputs
         inputs.motorConnected = True
-        inputs.motorPosition = self._simMotor.getAngularPosition()
         inputs.motorVelocity = self._simMotor.getAngularVelocity()
         inputs.motorAppliedVolts = self._motorAppliedVolts
-        inputs.motorCurrent = abs(self._motorAppliedVolts / 12.0) * 40.0  # Rough current estimate
-        inputs.motorTemperature = 25.0  # Room temperature
+        inputs.motorCurrent = self._simMotor.getCurrentDraw()
+        inputs.motorTemperature = 25.0
+        inputs.motorPosition += inputs.motorVelocity * 0.02
 
 
     def setMotorRPS(self, rps: float) -> None:

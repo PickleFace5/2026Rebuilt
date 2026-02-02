@@ -58,7 +58,7 @@ class Constants:
 
     class LauncherConstants:
         GEAR_RATIO = None
-        GAINS = None
+        GAINS: Slot0Configs = None
         SUPPLY_CURRENT = None
 
     class FeederConstants:
