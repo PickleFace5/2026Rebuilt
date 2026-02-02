@@ -18,44 +18,6 @@ from lib import elasticlib
 from lib.elasticlib import Notification, NotificationLevel
 from robot_container import RobotContainer
 
-"""
-import cv2
-
-# USB Limelight 3A stream URL (roboRIO reaches it via USB interface)
-_LIMELIGHT_USB_STREAM_URL = "http://172.29.0.1:5800/stream.mjpg"
-
-
-def _limelight_stream_proxy_thread(source) -> None:
-
-    #Pull MJPEG from USB Limelight and push to CameraServer for Elastic Camera Stream widget.
-    cap = None
-    while True:
-        try:
-            if cap is None or not cap.isOpened():
-                cap = cv2.VideoCapture(_LIMELIGHT_USB_STREAM_URL)
-                if not cap.isOpened():
-                    if cap is not None:
-                        cap.release()
-                    cap = None
-                    time.sleep(2.0)
-                    continue
-            ret, frame = cap.read()
-            if not ret:
-                if cap is not None:
-                    cap.release()
-                cap = None
-                continue
-            source.putFrame(frame)
-        except Exception:
-            if cap is not None:
-                try:
-                    cap.release()
-                except Exception:
-                    pass
-                cap = None
-            time.sleep(2.0)
-"""
-
 class Dwayne(LoggedRobot):
 
     def __init__(self, period = 0.02) -> None:
@@ -108,26 +70,6 @@ class Dwayne(LoggedRobot):
 
         SignalLogger.enable_auto_logging(False)
         wpilib.LiveWindow.disableAllTelemetry()
-
-        # Limelight 3A on USB: forward roboRIO ports so driver station can reach UI/stream at robotIP:5801 (UI), robotIP:5800 (stream)
-        # LimelightHelpers.setup_port_forwarding_usb(0)
-
-        # Proxy: pull Limelight MJPEG from USB (172.29.0.1:5800) and publish to CameraServer so Elastic "Camera Stream" can display it
-        """
-        try:
-            from cscore import CameraServer
-            stream_name = Constants.VisionConstants.FRONT  # "limelight-front" to match elastic-layout.json topic
-            limelight_source = CameraServer.putVideo(stream_name, 320, 240)
-            t = threading.Thread(
-                target=_limelight_stream_proxy_thread,
-                args=(limelight_source,),
-                daemon=True,
-                name="LimelightStreamProxy",
-            )
-            t.start()
-        except Exception as e:
-            DataLogManager.log(f"Limelight stream proxy skipped: {e}")
-        """
 
         DataLogManager.log("Robot initialized")
 

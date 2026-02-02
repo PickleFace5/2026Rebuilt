@@ -9,8 +9,6 @@ components = [
 ]
 
 # Other pip packages to install
-# robotpy-opencv only on robot (armv7l). opencv-python omitted: sync resolves for roboRIO target but has no armv7l wheel on PyPI.
-# For local sim without Limelight stream, install opencv-python manually: py -3 -m pip install opencv-python
 requires = [
     "robotpy-pykit",
     "robotpy-opencv; platform_machine == 'roborio'",

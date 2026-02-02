@@ -168,7 +168,6 @@ class RobotContainer:
 
     def _setup_controller_bindings(self) -> None:
         hid = self._driver_controller.getHID()
-        func_hid = self._function_controller.getHID()
         self.drivetrain.setDefaultCommand(
             self.drivetrain.apply_request(
                 lambda: self._field_centric
@@ -225,72 +224,6 @@ class RobotContainer:
             #self.hood.apply_request(func_hid.getRightY() * self._max_speed)
             print("Left Trigger")
         )
-
-        """
-        
-        for button, goal in goal_bindings.items():
-            if goal is self.superstructure.Goal.SCORE or goal is self.superstructure.Goal.PASSDEPOT or goal is self.superstructure.Goal.PASSOUTPOST:
-                (button.whileTrue(
-                    self.superstructure.set_goal_command(goal)
-                    .alongWith(self.intake.set_desired_state_command(self.launcher.SubsystemState.START)))
-                    .onFalse(self.intake.set_desired_state_command(self.launcher.SubsystemState.ALGAE_HOLD)))
-            else:
-                button.onTrue(self.superstructure.set_goal_command(goal))
-
-        self._function_controller.leftBumper().onTrue(
-            cmd.parallel(
-                self.superstructure.set_goal_command(self.superstructure.Goal.FUNNEL),
-                self.intake.set_desired_state_command(self.intake.SubsystemState.FUNNEL_INTAKE),
-            )
-        ).onFalse(
-            cmd.parallel(
-                self.superstructure.set_goal_command(self.superstructure.Goal.DEFAULT),
-                self.intake.set_desired_state_command(self.intake.SubsystemState.STOP)
-            )
-        )
-
-        (self._function_controller.leftBumper() & self._function_controller.back()).whileTrue(
-            cmd.parallel(
-                self.superstructure.set_goal_command(self.superstructure.Goal.FLOOR),
-                self.intake.set_desired_state_command(self.intake.SubsystemState.CORAL_INTAKE),
-            )
-        ).onFalse(
-            cmd.parallel(
-                self.superstructure.set_goal_command(self.superstructure.Goal.DEFAULT),
-                self.intake.set_desired_state_command(self.intake.SubsystemState.STOP),
-            )
-        )
-
-        (self._function_controller.povLeft() | self._function_controller.povUpLeft() | self._function_controller.povDownLeft()).onTrue(
-            cmd.parallel(
-                self.climber.set_desired_state_command(self.climber.SubsystemState.CLIMB_OUT),
-                self.superstructure.set_goal_command(self.superstructure.Goal.CLIMB)
-            )
-        ).onFalse(self.climber.set_desired_state_command(self.climber.SubsystemState.STOP))
-
-        (self._function_controller.povRight() | self._function_controller.povUpRight() | self._function_controller.povDownRight()).onTrue(
-            cmd.parallel(
-                self.climber.set_desired_state_command(self.climber.SubsystemState.CLIMB_IN),
-                self.superstructure.set_goal_command(self.superstructure.Goal.CLIMB)
-            )
-        ).onFalse(self.climber.set_desired_state_command(self.climber.SubsystemState.STOP))
-
-        self._function_controller.povUp().onTrue(
-            self.superstructure.set_goal_command(self.superstructure.Goal.FINISH)
-        )
-
-        self._function_controller.rightBumper().whileTrue(
-            self.intake.set_desired_state_command(self.intake.SubsystemState.OUTPUT)
-        ).onFalse(
-            self.intake.set_desired_state_command(self.intake.SubsystemState.STOP)
-        )
-
-        (self._function_controller.rightBumper() & self._function_controller.start()).onTrue(
-            self.intake.set_desired_state_command(self.intake.SubsystemState.L1_OUTPUT)
-        ).onFalse(
-            self.intake.set_desired_state_command(self.intake.SubsystemState.STOP)
-        )
-        """
 
     def get_autonomous_command(self) -> commands2.Command:
         return self._auto_chooser.getSelected()
