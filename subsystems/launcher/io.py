@@ -154,7 +154,7 @@ class LauncherIOSim(LauncherIO):
         # Update inputs
         inputs.motorConnected = True
         inputs.motorVelocity = self._simMotor.getAngularVelocity()
-        inputs.motorAppliedVolts = self._motorAppliedVolts
+        inputs.motorAppliedVolts = self._simMotor.getInputVoltage()
         inputs.motorCurrent = self._simMotor.getCurrentDraw()
         inputs.motorTemperature = 25.0
         inputs.motorPosition += inputs.motorVelocity * 0.02
@@ -163,8 +163,6 @@ class LauncherIOSim(LauncherIO):
     def setMotorRPS(self, rps: float) -> None:
         """Set the motor output velocity."""
         self._motorVelocity = rps
-        # opposite of the other sims, switcharoo of volts and rps
-        self._motorAppliedVolts = max(-12.0, min(12.0, self._motorVelocity/10))
         
         
 
