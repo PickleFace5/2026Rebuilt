@@ -1,14 +1,17 @@
 """
 Hood subsystem
 """
-from math import atan, sqrt
+from math import atan, sqrt, degrees
 from typing import Callable
 
-from pathplannerlib.auto import FlippingUtil
+import pathplannerlib
+from pathplannerlib.auto import FlippingUtil, AutoBuilder
+from pykit.autolog import autologgable_output, autolog
 from pykit.logger import Logger
 from wpilib import Alert, DriverStation
 from wpimath.filter import Debouncer
 from wpimath.geometry import Pose2d, Rotation2d, Pose3d
+from wpiutil.wpistruct import dataclass
 
 from constants import Constants
 from subsystems import Subsystem
@@ -31,31 +34,39 @@ class HoodSubsystem(Subsystem):
 
         self.at_set_point_debounce = Debouncer(0.1, Debouncer.DebounceType.kRising)
 
-        self.hub_pose = Pose2d # blue hub
+        self.hub_pose = Pose2d(4.625594, 4.034536, 0.0)  # blue hub
         self.launch_speed =  10.03 # meters per second
-        self.distance = 1
-        self.angle = atan(       # calculated angle using launch speed, distance and starting height
+        self.distance = 1.0000000
+        self.angle = 1.0000000
+
+    def update_angle(self):
+        """updates hood angle"""
+        self.angle = degrees(atan(  # calculates angle
             (self.launch_speed ** 2 +
              sqrt(
-                 self.launch_speed ** 4 -
+                 abs(self.launch_speed ** 4 -
                  9.80665 *
                  (9.80665 * self.distance ** 2 +
-                  3 * Constants.FieldConstants.HUB_HEIGHT * self.launch_speed ** 2)))
-             / (9.80665 * self.distance))
+                  3 * Constants.FieldConstants.HUB_HEIGHT * self.launch_speed ** 2))))
+            / (9.80665 * self.distance)))
 
 
     def periodic(self):
         """runs stuff periodically (every 20 ms)"""
         self.io.update_inputs(self.inputs)
         Logger.processInputs("Hood", self.inputs)
+        Logger.recordOutput("Hood/Angle", self.angle)
+        Logger.recordOutput("Hood/Distance", self.distance)
+        Logger.recordOutput("Hood/shouldFlip", AutoBuilder.shouldFlip())
 
-        self.hub_pose = Constants.FieldConstants.HUB_POSE
         self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
 
         self.io.set_position(Rotation2d.fromDegrees(self.angle)) # convert degrees to rotations,
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
+
+        self.update_angle()
 
         if self.alliance != DriverStation.getAlliance():
             self.hub_pose = FlippingUtil.flipFieldPose(self.hub_pose)
