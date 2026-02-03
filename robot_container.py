@@ -75,7 +75,6 @@ class RobotContainer:
                     # Note: Constants.CanIDs.CLIMB_TALON is automatically set based on detected robot (Larry vs Comp)
                     climber_io = ClimberIOTalonFX(
                         Constants.CanIDs.CLIMB_TALON,  # Different CAN ID for Larry vs Comp
-                        Constants.ClimberConstants.SERVO_PORT,
                         climber_motor_config
                     )
                     

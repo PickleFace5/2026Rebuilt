@@ -78,7 +78,7 @@ class HoodIOTalonFX(HoodIO):
         self._motor.optimize_bus_utilization()
 
         # Voltage control request
-        self._voltageRequest: Final[VoltageOut] = VoltageOut(0)
+        self._voltage_request: Final[VoltageOut] = VoltageOut(0)
 
     def updateInputs(self, inputs: HoodIO.HoodIOInputs) -> None:
         """Update inputs with current motor state."""
@@ -101,8 +101,8 @@ class HoodIOTalonFX(HoodIO):
 
     def setMotorVoltage(self, voltage: volts) -> None:
         """Set the motor output voltage."""
-        self._voltageRequest.output = voltage
-        self._motor.set_control(self._voltageRequest)
+        self._voltage_request.output = voltage
+        self._motor.set_control(self._voltage_request)
 
 
 
@@ -113,29 +113,29 @@ class HoodIOSim(HoodIO):
 
     def __init__(self) -> None:
         """Initialize the simulation IO."""
-        self._motorPosition: float = 0.0
-        self._motorVelocity: float = 0.0
-        self._motorAppliedVolts: float = 0.0
+        self._motor_position: float = 0.0
+        self._motor_velocity: float = 0.0
+        self._motor_applied_volts: float = 0.0
 
     def updateInputs(self, inputs: HoodIO.HoodIOInputs) -> None:
         """Update inputs with simulated state."""
         # Simulate motor behavior (simple integration)
         # In a real simulation, you'd use a physics model here
         dt = 0.02  # 20ms periodic
-        self._motorPosition += self._motorVelocity * dt
+        self._motor_position += self._motor_velocity * dt
 
         # Update inputs
         inputs.motorConnected = True
-        inputs.motorPosition = self._motorPosition
-        inputs.motorVelocity = self._motorVelocity
-        inputs.motorAppliedVolts = self._motorAppliedVolts
-        inputs.motorCurrent = abs(self._motorAppliedVolts / 12.0) * 40.0  # Rough current estimate
+        inputs.motorPosition = self._motor_position
+        inputs.motorVelocity = self._motor_velocity
+        inputs.motorAppliedVolts = self._motor_applied_volts
+        inputs.motorCurrent = abs(self._motor_applied_volts / 12.0) * 40.0  # Rough current estimate
         inputs.motorTemperature = 25.0  # Room temperature
 
 
     def setMotorVoltage(self, voltage: volts) -> None:
         """Set the motor output voltage (simulated)."""
-        self._motorAppliedVolts = max(-12.0, min(12.0, voltage))
+        self._motor_applied_volts = max(-12.0, min(12.0, voltage))
         # Simple velocity model: voltage -> velocity (with some damping)
-        self._motorVelocity = self._motorAppliedVolts * 10.0  # Adjust multiplier as needed
+        self._motor_velocity = self._motor_applied_volts * 10.0  # Adjust multiplier as needed
 

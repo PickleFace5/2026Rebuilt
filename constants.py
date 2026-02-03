@@ -42,7 +42,7 @@ class Constants:
     
     """Values may differ between robots."""
     class ClimberConstants:
-        GEAR_RATIO = None
+        GEAR_RATIO = 1.0
         GAINS = (Slot0Configs()
                 .with_k_p(1.0)
                 .with_k_i(0.0)
@@ -54,8 +54,8 @@ class Constants:
         VOLTAGE_INWARDS = None
         VOLTAGE_OUTWARDS = None
         CLIMB_FULL_THRESHOLD = None
-        SUPPLY_CURRENT = None
-        MOMENT_OF_INERTIA = None
+        SUPPLY_CURRENT = 30.0
+        MOMENT_OF_INERTIA = 0.01
 
     class IntakeConstants:
         GEAR_RATIO = None

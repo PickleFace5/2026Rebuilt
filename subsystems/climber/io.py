@@ -10,7 +10,7 @@ from pykit.autolog import autolog
 from wpilib.simulation import DCMotorSim
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radians_per_second, volts, amperes, celsius, rotationsToRadians
-from wpimath.controller import ProfiledPIDController
+from wpimath.controller import ProfiledPIDController, PIDController
 
 from constants import Constants
 from util import tryUntilOk
@@ -80,7 +80,7 @@ class ClimberIOTalonFX(ClimberIO):
         self._motor.optimize_bus_utilization()
 
         # Voltage control request
-        self._voltageRequest: Final[VoltageOut] = VoltageOut(0)
+        self._voltage_request: Final[VoltageOut] = VoltageOut(0)
 
     def updateInputs(self, inputs: ClimberIO.ClimberIOInputs) -> None:
         """Update inputs with current motor and servo state."""
@@ -103,8 +103,8 @@ class ClimberIOTalonFX(ClimberIO):
 
     def setMotorVoltage(self, voltage: volts) -> None:
         """Set the motor output voltage."""
-        self._voltageRequest.output = voltage
-        self._motor.set_control(self._voltageRequest)
+        self._voltage_request.output = voltage
+        self._motor.set_control(self._voltage_request)
 
 
 class ClimberIOSim(ClimberIO):
@@ -114,23 +114,23 @@ class ClimberIOSim(ClimberIO):
 
     def __init__(self) -> None:
         """Initialize the simulation IO."""
-        self._motorPosition: float = 0.0
-        self._motorVelocity: float = 0.0
-        self._motorAppliedVolts: float = 0.0
+        self._motor_position: float = 0.0
+        self._motor_velocity: float = 0.0
+        self._motor_applied_volts: float = 0.0
 
-        self._motorType = DCMotor.krakenX60FOC(1)
-        self._climberSim = DCMotorSim(
-            LinearSystemId(
-                self._motorType, 
+        self._motor_type = DCMotor.krakenX60FOC(1)
+        self._climber_sim = DCMotorSim(
+            LinearSystemId.DCMotorSystem(
+                self._motor_type, 
                 Constants.ClimberConstants.MOMENT_OF_INERTIA, 
                 Constants.ClimberConstants.GEAR_RATIO
             ), 
-            self._motorType
+            self._motor_type
         )
 
-        self._closedLoop = False
+        self._closed_loop = False
 
-        self._controller = ProfiledPIDController(Constants.ClimberConstants.GAINS.k_p,
+        self._controller = PIDController(Constants.ClimberConstants.GAINS.k_p,
                                         Constants.ClimberConstants.GAINS.k_i,
                                         Constants.ClimberConstants.GAINS.k_d)
 
@@ -140,32 +140,32 @@ class ClimberIOSim(ClimberIO):
         # Simulate motor behavior (simple integration)
         # In a real simulation, you'd use a physics model here
 
-        if (self._closedLoop):
-            self._motorAppliedVolts = self._controller.calculate(self._climberSim.getAngularPosition())
+        if (self._closed_loop):
+            self._motor_applied_volts = self._controller.calculate(self._climber_sim.getAngularPosition())
         else:
-            self._controller.reset(self._climberSim.getAngularPosition(), self._climberSim.getAngularAcceleration())
+            self._controller.reset(self._climber_sim.getAngularPosition(), self._climber_sim.getAngularAcceleration())
 
-        self.setMotorVoltage(self._motorAppliedVolts)
-        self._climberSim.update(0.02)  # 20ms periodic
+        self.setMotorVoltage(self._motor_applied_volts)
+        self._climber_sim.update(0.02)  # 20ms periodic
 
         # Update inputs
         inputs.motorConnected = True
-        inputs.motorPosition = self._climberSim.getAngularPosition()
-        inputs.motorVelocity = self._climberSim.getAngularAcceleration()
-        inputs.motorAppliedVolts = self._motorAppliedVolts
-        inputs.motorCurrent = abs(self._climberSim.getCurrentDraw())  # Rough current estimate
+        inputs.motorPosition = self._climber_sim.getAngularPosition()
+        inputs.motorVelocity = self._climber_sim.getAngularAcceleration()
+        inputs.motorAppliedVolts = self._motor_applied_volts
+        inputs.motorCurrent = abs(self._climber_sim.getCurrentDraw())  # Rough current estimate
         inputs.motorTemperature = 25.0  # Room temperature
 
     def setOpenLoop(self, output):
-        self._closedLoop = False
-        self._motorAppliedVolts = output
+        self._closed_loop = False
+        self._motor_applied_volts = output
 
     def setPosition(self, position):
-        self._closedLoop = True
+        self._closed_loop = True
         self._controller.getSetpoint(rotationsToRadians(position))
 
     def setMotorVoltage(self, voltage: volts) -> None:
         """Set the motor output voltage (simulated)."""
-        self._motorAppliedVolts = max(-12.0, min(12.0, voltage))
+        self._motor_applied_volts = max(-12.0, min(12.0, voltage))
         # Simple velocity model: voltage -> velocity (with some damping)
-        self._motorVelocity = self._motorAppliedVolts * 10.0  # Adjust multiplier as needed
+        self._motor_velocity = self._motor_applied_volts * 10.0  # Adjust multiplier as needed
