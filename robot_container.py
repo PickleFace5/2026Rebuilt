@@ -94,13 +94,8 @@ class RobotContainer:
                     Constants.VisionConstants.LAUNCHER,
                 )
 
-                # Create climber only if it exists on this robot
-                if has_subsystem("climber"):
-                    # Create climber subsystem with simulation IO
-                    self.climber = ClimberSubsystem(ClimberIOSim())
-                    print("Climber, Present")
-                else:
-                    print("Climber subsystem not available on this robot")
+                self.climber = ClimberSubsystem(ClimberIOSim())
+                print("Climber, Present")
 
         self.superstructure = Superstructure(
             self.drivetrain, self.vision, self.climber, self.intake
