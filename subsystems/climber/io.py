@@ -119,7 +119,14 @@ class ClimberIOSim(ClimberIO):
         self._motorAppliedVolts: float = 0.0
 
         self._motorType = DCMotor.krakenX60FOC(1)
-        self._climberSim = DCMotorSim(LinearSystemId(self._motorType, Constants.ClimberConstants.MOMENT_OF_INERTIA, Constants.ClimberConstants.GEAR_RATIO, self._motorType))
+        self._climberSim = DCMotorSim(
+            LinearSystemId(
+                self._motorType, 
+                Constants.ClimberConstants.MOMENT_OF_INERTIA, 
+                Constants.ClimberConstants.GEAR_RATIO
+            ), 
+            self._motorType
+        )
 
         self._closedLoop = False
 
