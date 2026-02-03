@@ -71,8 +71,8 @@ class Constants:
         INSIDE_FRAME_ANGLE = None
 
     class VisionConstants:
-        FRONT = "limelight-fr"
-        LAUNCHER = "limelight-al"
+        FRONT = "limelight-front"
+        # LAUNCHER = "limelight-al"
 
     class HoodConstants:
         GEAR_RATIO = 68/3
