@@ -106,8 +106,8 @@ class ClimberIOTalonFX(ClimberIO):
         self._voltage_request.output = voltage
         self._motor.set_control(self._voltage_request)
 
-    def get_position(self, position) -> None:
-        self._motor.set_control(self._voltage_request)
+    def get_position(self) -> float:
+        return self._motor.get_position()
 
 
 class ClimberIOSim(ClimberIO):
@@ -167,9 +167,8 @@ class ClimberIOSim(ClimberIO):
         self._closed_loop = True
         self._controller.getSetpoint(rotationsToRadians(position))
 
-    def getPosition(self, position):
-        pass
-
+    def get_position(self) -> float:
+        return self._motor_position
 
     def setMotorVoltage(self, voltage: volts) -> None:
         """Set the motor output voltage (simulated)."""
