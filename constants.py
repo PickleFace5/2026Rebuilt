@@ -4,6 +4,7 @@ from typing import Final
 from phoenix6.configs.config_groups import Slot0Configs
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import RobotBase
+from wpimath.geometry import Pose2d
 
 from robot_config import currentRobot, Robot
 
@@ -24,7 +25,7 @@ class Constants:
     simMode: Final[Mode] = Mode.SIM
     currentMode: Final[Mode] = Mode.REAL if RobotBase.isReal() else simMode
 
-    FIELD_LAYOUT: Final[AprilTagFieldLayout] = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
+    FIELD_LAYOUT: Final[AprilTagFieldLayout] = AprilTagFieldLayout.loadField(AprilTagField.k2026RebuiltWelded)
 
     # Hardware configurations
     # Can ids are to be set in the same order as they are wired in the CAN bus
@@ -39,8 +40,7 @@ class Constants:
         LAUNCHER_RIGHT_TALON = 16 # Kraken X44
         TURRET_CANCODER = 17
         HOOD_CANCODER = 18
-    
-    """Values may differ between robots."""
+
     class ClimberConstants:
         GEAR_RATIO = None
         GAINS = None
@@ -62,6 +62,7 @@ class Constants:
         SUPPLY_CURRENT = None
         MOMENT_OF_INERTIA = None
 
+
     class FeederConstants:
         GEAR_RATIO = None
         GAINS: Slot0Configs = None
@@ -72,7 +73,21 @@ class Constants:
         FRONT = "limelight-front"
         # LAUNCHER = "limelight-al"
 
+    class HoodConstants:
+        GEAR_RATIO = 68/3
+        GAINS = (Slot0Configs()
+                .with_k_p(6.343)
+                .with_k_i(0.0)
+                .with_k_d(0.2)
+                .with_k_s(0.0)
+                .with_k_v(0.0)
+                .with_k_a(0.0)
+)
+    SUPPLY_CURRENT = 35
 
+    class FieldConstants:
+        HUB_POSE = Pose2d(4.625594, 4.034536, 0.0)  # blue hub, flip when needed
+        HUB_HEIGHT = 1.3860018  # hub height - initial height of shooter (17.433 inches) (in meters)
 
 # Initialize robot-specific hardware configurations
 def _init_hardware_configs():
@@ -114,7 +129,7 @@ def _init_hardware_configs():
             Constants.ClimberConstants.VOLTAGE_INWARDS = 16.0
             Constants.ClimberConstants.VOLTAGE_OUTWARDS = -4.0
             Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 100.0  # Adjust as needed
-    
+
             # Intake
             Constants.IntakeConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
             Constants.IntakeConstants.GAINS = (Slot0Configs()
