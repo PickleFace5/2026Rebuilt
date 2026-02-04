@@ -52,8 +52,7 @@ class VisionSubsystem(StateSubsystem):
     def periodic(self):
         super().periodic()
 
-        state = self._subsystem_state
-        if state is self.SubsystemState.NO_ESTIMATES or abs(self._swerve.pigeon2.get_angular_velocity_z_world().value) > 720:
+        if self.current_state is self.SubsystemState.NO_ESTIMATES or abs(self._swerve.pigeon2.get_angular_velocity_z_world().value) > 720:
             return
 
         futures = [
