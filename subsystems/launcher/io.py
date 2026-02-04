@@ -4,11 +4,11 @@ from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import VoltageOut
+from phoenix6.controls import VelocityVoltage
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue
 from pykit.autolog import autolog
-from wpimath.units import radians, radians_per_second, volts, amperes, celsius, degrees
+from wpimath.units import radians, radians_per_second, volts, amperes, celsius, degrees, revolutions_per_minute
 
 from constants import Constants
 from util import tryUntilOk
@@ -37,8 +37,8 @@ class LauncherIO(ABC):
         """Update the inputs with current hardware/simulation state."""
         pass
 
-    def setMotorVoltage(self, voltage: volts) -> None:
-        """Set the motor output voltage."""
+    def setMotorRPS(self, rps: float) -> None:
+        """Set the motor output velocity."""
         pass
 
 
@@ -78,7 +78,7 @@ class LauncherIOTalonFX(LauncherIO):
         self._motor.optimize_bus_utilization()
 
         # Voltage control request
-        self._voltageRequest: Final[VoltageOut] = VoltageOut(0)
+        self._voltageRequest: Final[VelocityVoltage] = VelocityVoltage(0)
 
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:
         """Update inputs with current motor state."""
@@ -99,9 +99,9 @@ class LauncherIOTalonFX(LauncherIO):
         inputs.motorCurrent = self._current.value_as_double
         inputs.motorTemperature = self._temperature.value_as_double
 
-    def setMotorVoltage(self, voltage: volts) -> None:
-        """Set the motor output voltage."""
-        self._voltageRequest.output = voltage
+    def setMotorRPS(self, rps: float) -> None:
+        """Set the motor output velocity."""
+        self._voltageRequest.velocity = rps
         self._motor.set_control(self._voltageRequest)
 
 
@@ -133,9 +133,9 @@ class LauncherIOSim(LauncherIO):
         inputs.motorTemperature = 25.0  # Room temperature
 
 
-    def setMotorVoltage(self, voltage: volts) -> None:
-        """Set the motor output voltage (simulated)."""
-        self._motorAppliedVolts = max(-12.0, min(12.0, voltage))
+    def setMotorRPS(self, rps: float) -> None:
+        """Set the motor output velocity."""
+        self._motorAppliedVolts = max(-12.0, min(12.0, rps))
         # Simple velocity model: voltage -> velocity (with some damping)
         self._motorVelocity = self._motorAppliedVolts * 10.0  # Adjust multiplier as needed
 

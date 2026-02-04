@@ -14,16 +14,16 @@ from constants import Constants
 from util import tryUntilOk
 
 
-class KickerIO(ABC):
+class FeederIO(ABC):
     """
-    Abstract base class for kicker IO implementations.
+    Abstract base class for Feeder IO implementations.
     Provides the interface for both real hardware and simulation.
     """
 
     @autolog
     @dataclass
-    class KickerIOInputs:
-        """Inputs from the kicker hardware/simulation."""
+    class FeederIOInputs:
+        """Inputs from the Feeder hardware/simulation."""
         # Motor status
         motorConnected: bool = False
         motorPosition: radians = 0.0
@@ -33,7 +33,7 @@ class KickerIO(ABC):
         motorTemperature: celsius = 0.0
 
 
-    def updateInputs(self, inputs: KickerIOInputs) -> None:
+    def updateInputs(self, inputs: FeederIOInputs) -> None:
         """Update the inputs with current hardware/simulation state."""
         pass
 
@@ -42,7 +42,7 @@ class KickerIO(ABC):
         pass
 
 
-class KickerIOTalonFX(KickerIO):
+class FeederIOTalonFX(FeederIO):
     """
     Real hardware implementation using TalonFX motor controller.
     """
@@ -80,7 +80,7 @@ class KickerIOTalonFX(KickerIO):
         # Voltage control request
         self._voltageRequest: Final[VoltageOut] = VoltageOut(0)
 
-    def updateInputs(self, inputs: KickerIO.KickerIOInputs) -> None:
+    def updateInputs(self, inputs: FeederIO.FeederIOInputs) -> None:
         """Update inputs with current motor state."""
         # Refresh all motor signals
         motorStatus = BaseStatusSignal.refresh_all(
@@ -106,7 +106,7 @@ class KickerIOTalonFX(KickerIO):
 
 
 
-class KickerIOSim(KickerIO):
+class FeederIOSim(FeederIO):
     """
     Simulation implementation for testing without hardware.
     """
@@ -117,7 +117,7 @@ class KickerIOSim(KickerIO):
         self._motorVelocity: float = 0.0
         self._motorAppliedVolts: float = 0.0
 
-    def updateInputs(self, inputs: KickerIO.KickerIOInputs) -> None:
+    def updateInputs(self, inputs: FeederIO.FeederIOInputs) -> None:
         """Update inputs with simulated state."""
         # Simulate motor behavior (simple integration)
         # In a real simulation, you'd use a physics model here
