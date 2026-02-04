@@ -245,10 +245,11 @@ class RobotContainer:
         }
 
         Trigger(lambda: self._function_controller.getLeftTriggerAxis() > 0.75).onTrue(
-            self.vision.set_desired_state(self.vision.SubsystemState.NO_ESTIMATES)
-        ).whileTrue(
-            #self.hood.apply_request(func_hid.getRightY() * self._max_speed)
-            print("Left Trigger")
+            self.vision.set_desired_state_command(self.vision.SubsystemState.NO_ESTIMATES)
+        )
+
+        Trigger(lambda: self._function_controller.getRightTriggerAxis() > 0.75).onTrue(
+            self.vision.set_desired_state_command(self.vision.SubsystemState.ALL_ESTIMATES)
         )
 
     def get_autonomous_command(self) -> commands2.Command:
