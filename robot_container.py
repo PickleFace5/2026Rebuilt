@@ -5,7 +5,7 @@ import commands2
 import commands2.button
 from commands2 import cmd, InstantCommand
 from commands2.button import CommandXboxController, Trigger
-from pathplannerlib.auto import NamedCommands, PathPlannerAuto, AutoBuilder
+from pathplannerlib.auto import NamedCommands, AutoBuilder, PathPlannerAuto
 from pathplannerlib.util import FlippingUtil
 from phoenix6 import swerve
 from phoenix6.configs import TalonFXConfiguration
@@ -27,6 +27,9 @@ from subsystems.swerve import SwerveSubsystem
 from subsystems.vision import VisionSubsystem
 from subsystems.hood import HoodSubsystem
 from subsystems.hood.io import HoodIOSim, HoodIOTalonFX
+from subsystems.turret import TurretSubsystem
+from subsystems.turret.io import TurretIOTalonFX, TurretIOSim
+import inspect
 
 
 class RobotContainer:
@@ -46,6 +49,7 @@ class RobotContainer:
         self.intake: Optional[IntakeSubsystem] = None
         self.drivetrain: Optional[SwerveSubsystem] = None
         self.vision: Optional[VisionSubsystem] = None
+        self.turret: Optional[TurretSubsystem] = None
         match Constants.currentMode:
             case Constants.Mode.REAL:
                 # Real robot, instantiate hardware IO implementations
@@ -60,6 +64,9 @@ class RobotContainer:
                         self.drivetrain,
                         Constants.VisionConstants.FRONT,
                     )
+
+                if has_subsystem("turret"):
+                    self.turret = TurretSubsystem(TurretIOTalonFX(), lambda: self.drivetrain.get_state().pose)
 
                 # Create climber only if it exists on this robot
                 if has_subsystem("climber"):
@@ -114,6 +121,7 @@ class RobotContainer:
                 robot_pose_supplier = lambda: self.drivetrain.get_state().pose
                 self.hood = HoodSubsystem(HoodIOSim(), robot_pose_supplier)
 
+                self.turret = TurretSubsystem(TurretIOSim(), lambda: self.drivetrain.get_state().pose)
 
                 # Create climber only if it exists on this robot
                 if has_subsystem("climber"):
@@ -251,6 +259,15 @@ class RobotContainer:
         Trigger(lambda: self._function_controller.getRightTriggerAxis() > 0.75).onTrue(
             self.vision.set_desired_state_command(self.vision.SubsystemState.ALL_ESTIMATES)
         )
+        
+        # Turret to hub
+        self._function_controller.y().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.HUB)))
+
+        # Turret to depot
+        self._function_controller.x().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.DEPOT)))
+
+        # Turret to outpost
+        self._function_controller.b().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.OUTPOST)))
 
     def get_autonomous_command(self) -> commands2.Command:
         return self._auto_chooser.getSelected()
