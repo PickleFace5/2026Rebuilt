@@ -85,7 +85,7 @@ class LauncherSubsystem(StateSubsystem):
     def find_position(self) -> float:
         return self._robot_pose_supplier().X
     
-    def velocityToWheelRPS(self, velocity: float) -> float:
+    def velocityToWheelRPS(velocity: float) -> float:
         
         effective_rotational_inertia = GeneralConstants.GAME_PIECE_WEIGHT * (LauncherConstants.FLYWHEEL_RADIUS ** 2)/2
 
