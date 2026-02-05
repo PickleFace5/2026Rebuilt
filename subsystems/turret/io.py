@@ -10,6 +10,7 @@ from phoenix6.signals import NeutralModeValue, InvertedValue
 from pykit.autolog import autolog
 from wpimath.units import radians, radians_per_second, radiansToRotations, volts, amperes, celsius
 from wpimath.system.plant import DCMotor, LinearSystemId
+from wpilib.simulation import DCMotorSim
 from wpimath.controller import PIDController
 
 from constants import Constants
