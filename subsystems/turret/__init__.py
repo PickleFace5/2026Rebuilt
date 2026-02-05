@@ -39,9 +39,9 @@ class TurretSubsystem(Subsystem):
         self._inputs = TurretIO.TurretIOInputs()
         self.robot_pose_supplier = robot_pose_supplier
 
-        self._motorDisconnectedAlert = Alert("Turret motor is disconnected.", Alert.AlertType.kError)
+        self.turret_disconnected_alert = Alert("Turret motor is disconnected.", Alert.AlertType.kError)
 
-        self.positionRequest = PositionVoltage(0)
+        self.position_request = PositionVoltage(0)
 
         self.independent_rotation = Rotation2d(0)
         self.current_radians = 0.0
@@ -51,14 +51,15 @@ class TurretSubsystem(Subsystem):
     def periodic(self):
 
         # Update inputs from hardware/simulation
-        self._io.updateInputs(self._inputs)
+        self._io.update_inputs(self._inputs)
 
         # Log inputs to PyKit
         Logger.processInputs("Turret", self._inputs)
 
         # Update alerts
-        self._motorDisconnectedAlert.set(not self._inputs.turret_connected)
+        self.turret_disconnected_alert.set(not self._inputs.turret_connected)
 
+        # TODO will be implemented later for calculating the current position of the turret independent of the robot's rotation
         self.current_radians = self.robot_pose_supplier().rotation().radians() + self.independent_rotation.radians()
 
         if self.goal != self.Goal.NONE:
@@ -86,4 +87,4 @@ class TurretSubsystem(Subsystem):
         # This function might not work because it probably isn't periodic so it'll only set the output once and then not check if the angle is correct until it's called again (which is when the target changes)
         self.goal = target
         target_radians = self.get_radians_to_goal()
-        self.io.set_position(target_radians)
+        self._io.set_position(target_radians)

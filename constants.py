@@ -76,6 +76,19 @@ class Constants:
         FRONT = "limelight-front"
         # LAUNCHER = "limelight-al"
 
+    class TurretConstants:
+        GAINS = (Slot0Configs()
+                .with_k_p(1.0)
+                .with_k_i(0.0)
+                .with_k_d(0.0)
+                .with_k_s(0.0)
+                .with_k_v(0.0)
+                .with_k_a(0.0)
+            )
+        GEAR_RATIO = 170/36
+        SUPPLY_CURRENT = 40
+        MOI = .455
+        
     class HoodConstants:
         GEAR_RATIO = 68/3
         GAINS = (Slot0Configs()
