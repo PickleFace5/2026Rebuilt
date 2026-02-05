@@ -4,16 +4,20 @@ from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import VelocityVoltage
+from phoenix6.controls import VelocityVoltage, Follower
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue
 from pykit.autolog import autolog
-from wpimath.units import radians, radians_per_second, volts, amperes, celsius, degrees, revolutions_per_minute
+from wpimath.units import radians, radians_per_second, volts, amperes, celsius
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.controller import PIDController
 from wpilib.simulation import FlywheelSim
 
 from constants import Constants
+LauncherConstants = Constants.LauncherConstants
+GeneralConstants = Constants.GeneralConstants
+CanIds = Constants.CanIDs
+
 from util import tryUntilOk
 
 
@@ -50,21 +54,19 @@ class LauncherIOTalonFX(LauncherIO):
     Real hardware implementation using TalonFX motor controller.
     """
 
-    def __init__(self, motor_id: int) -> None:
+    def __init__(self) -> None:
         """
         Initialize the real hardware IO.
-
-        :param motor_id: CAN ID of the TalonFX motor
         """
-        self._main_motor: Final[TalonFX] = TalonFX(motor_id, "rio")
-
+        self._main_motor: Final[TalonFX] = TalonFX(CanIds.LAUNCHER_LEFT_TALON, "rio")
+        self._follower_motor: Final[TalonFX] = TalonFX(CanIds.LAUNCHER_RIGHT_TALON, "rio")
 
         # Apply motor configuration
         _motor_config = TalonFXConfiguration()
 
-        _motor_config.slot0 = Constants.LauncherConstants.GAINS
+        _motor_config.slot0 = LauncherConstants.GAINS
         _motor_config.motor_output.neutral_mode = NeutralModeValue.COAST
-        _motor_config.feedback.sensor_to_mechanism_ratio = Constants.LauncherConstants.GEAR_RATIO
+        _motor_config.feedback.sensor_to_mechanism_ratio = LauncherConstants.GEAR_RATIO
 
         tryUntilOk(5, lambda: self._main_motor.configurator.apply(_motor_config, 0.25))
         tryUntilOk(5, lambda: self._main_motor.set_position(0, 0.25))
@@ -87,8 +89,9 @@ class LauncherIOTalonFX(LauncherIO):
         )
         self._main_motor.optimize_bus_utilization()
 
-        # Voltage control request
+        # Control requests
         self._voltageRequest: Final[VelocityVoltage] = VelocityVoltage(0)
+        self._follower_motor.set_control(Follower(CanIds.LAUNCHER_LEFT_TALON))
 
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:
         """Update inputs with current motor state."""
@@ -126,8 +129,8 @@ class LauncherIOSim(LauncherIO):
 
         linearSystem = LinearSystemId.flywheelSystem(
             self._motorType,
-            Constants.LauncherConstants.MOMENT_OF_INERTIA,
-            Constants.LauncherConstants.GEAR_RATIO
+            LauncherConstants.MOMENT_OF_INERTIA,
+            LauncherConstants.GEAR_RATIO
         )
         self._simMotor = FlywheelSim(linearSystem, self._motorType, [0])
         self._closedloop = True
@@ -137,9 +140,9 @@ class LauncherIOSim(LauncherIO):
         self._motorAppliedVolts: float = 0.0
 
         self._controller = PIDController(
-                            Constants.LauncherConstants.GAINS.k_p,
-                            Constants.LauncherConstants.GAINS.k_i,
-                            Constants.LauncherConstants.GAINS.k_d,
+                            LauncherConstants.GAINS.k_p,
+                            LauncherConstants.GAINS.k_i,
+                            LauncherConstants.GAINS.k_d,
                             0.02)
                         
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:

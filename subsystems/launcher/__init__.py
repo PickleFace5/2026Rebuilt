@@ -6,10 +6,13 @@ from wpilib import Alert
 from typing import Callable, Final
 from subsystems import StateSubsystem
 from subsystems.launcher.io import LauncherIO, LauncherIOTalonFX, LauncherIOSim
-
 from wpimath.geometry import Pose2d
 from commands2.button import Trigger
 from commands2 import InstantCommand
+
+from constants import Constants
+LauncherConstants = Constants.LauncherConstants
+GeneralConstants = Constants.GeneralConstants
 
 class LauncherSubsystem(StateSubsystem):
     """
@@ -22,9 +25,10 @@ class LauncherSubsystem(StateSubsystem):
         PASS = auto()
         
     _state_configs: dict[SubsystemState, float] = {
-        SubsystemState.IDLE: 10.0,
-        SubsystemState.SCORE: 28.5,
-        SubsystemState.PASS: 20.0,
+        # Meters per second
+        SubsystemState.IDLE: 5.0,
+        SubsystemState.SCORE: 12.26,
+        SubsystemState.PASS: 10.0,
     }
 
     def __init__(self, io: LauncherIO, robot_pose_supplier: Callable[[], Pose2d]) -> None:
@@ -33,6 +37,8 @@ class LauncherSubsystem(StateSubsystem):
         self._io: Final[LauncherIO] = io
         self._inputs = LauncherIO.LauncherIOInputs()
         self._robot_pose_supplier = robot_pose_supplier
+        self._desired_projectile_velocity = 0.0
+        self._desired_motorRPS = 0.0
         
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
@@ -55,7 +61,11 @@ class LauncherSubsystem(StateSubsystem):
         
         # Log inputs to PyKit
         Logger.processInputs("Launcher", self._inputs)
-        
+
+        # Log outputs to PyKit
+        Logger.recordOutput("Launcher/Target Projectile Velocity", self._desired_projectile_velocity)
+        Logger.recordOutput("Launcher/Target Motor RPS", self._desired_motorRPS)
+
         # Update alerts
         self._motorDisconnectedAlert.set(not self._inputs.motorConnected)
 
@@ -63,12 +73,29 @@ class LauncherSubsystem(StateSubsystem):
         if not super().set_desired_state(desired_state):
             return
 
-        motor_rps = self._state_configs.get(
+        projectile_velocity = self._state_configs.get(
             desired_state, 
             0.0
         )
-        
-        self._io.setMotorRPS(motor_rps) 
+
+        self._desired_projectile_velocity = projectile_velocity
+        self._desired_motorRPS = self.velocityToWheelRPS(projectile_velocity)
+        self._io.setMotorRPS(self._desired_motorRPS)
 
     def find_position(self) -> float:
         return self._robot_pose_supplier().X
+    
+    def velocityToWheelRPS(self, velocity: float) -> float:
+        
+        effective_rotational_inertia = GeneralConstants.GAME_PIECE_WEIGHT * (LauncherConstants.FLYWHEEL_RADIUS ** 2)/2
+
+        speed_transfer_percentage = (
+            (20 * LauncherConstants.MOMENT_OF_INERTIA)
+            /
+            (7 * effective_rotational_inertia) + (40 * LauncherConstants.MOMENT_OF_INERTIA)
+        )
+
+        rpm = velocity / (LauncherConstants.FLYWHEEL_RADIUS * speed_transfer_percentage)
+        
+        return rpm/60
+
