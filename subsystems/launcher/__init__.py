@@ -9,6 +9,7 @@ from subsystems.launcher.io import LauncherIO, LauncherIOTalonFX, LauncherIOSim
 from wpimath.geometry import Pose2d
 from commands2.button import Trigger
 from commands2 import InstantCommand
+from math import pi
 
 from constants import Constants
 LauncherConstants = Constants.LauncherConstants
@@ -42,7 +43,8 @@ class LauncherSubsystem(StateSubsystem):
         
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
-        
+        self.set_desired_state(self.SubsystemState.SCORE)
+
         """"
         automatic state switching based on position
 
@@ -85,17 +87,19 @@ class LauncherSubsystem(StateSubsystem):
     def find_position(self) -> float:
         return self._robot_pose_supplier().X
     
+    @staticmethod
     def velocityToWheelRPS(velocity: float) -> float:
+        """Converts m/s to rotations per second for the flywheel, accounting for inertia."""
         
-        effective_rotational_inertia = GeneralConstants.GAME_PIECE_WEIGHT * (LauncherConstants.FLYWHEEL_RADIUS ** 2)/2
+        effective_rotational_inertia = 7 * GeneralConstants.GAME_PIECE_WEIGHT * (LauncherConstants.FLYWHEEL_RADIUS ** 2)
 
         speed_transfer_percentage = (
             (20 * LauncherConstants.MOMENT_OF_INERTIA)
             /
-            (7 * effective_rotational_inertia) + (40 * LauncherConstants.MOMENT_OF_INERTIA)
+            (effective_rotational_inertia + (40 * LauncherConstants.MOMENT_OF_INERTIA))
         )
 
-        rpm = velocity / (LauncherConstants.FLYWHEEL_RADIUS * speed_transfer_percentage)
+        rpm = (velocity) / (LauncherConstants.FLYWHEEL_RADIUS * speed_transfer_percentage)
         
-        return rpm/60
+        return rpm/(2*pi)
 

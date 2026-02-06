@@ -6,7 +6,6 @@ from phoenix6.configs.config_groups import Slot0Configs
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import RobotBase
 from wpimath.geometry import Pose2d
-from wpimath.geometry import Pose2d
 
 from robot_config import currentRobot, Robot
 
@@ -44,7 +43,7 @@ class Constants:
         HOOD_CANCODER = 18
 
     class GeneralConstants:
-        GAME_PIECE_WEIGHT = 2
+        GAME_PIECE_WEIGHT = 0.215
 
     class ClimberConstants:
         GEAR_RATIO = None
@@ -101,7 +100,7 @@ class Constants:
                 .with_k_s(0.0)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
-)
+        )
     SUPPLY_CURRENT = 35
 
     class FieldConstants:
