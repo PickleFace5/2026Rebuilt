@@ -2,18 +2,68 @@ import wpilib
 from commands2 import CommandScheduler
 from ntcore import NetworkTableInstance
 from phoenix6 import SignalLogger
+from pykit.inputs.loggablepowerdistribution import LoggedPowerDistribution
 from pykit.loggedrobot import LoggedRobot
 from pykit.logger import Logger
 from pykit.logreplaysource import LogReplaySource
 from pykit.networktables.nt4Publisher import NT4Publisher
 from pykit.wpilog.wpilogwriter import WPILOGWriter
-from wpilib import DataLogManager, DriverStation, Timer
+from wpilib import DataLogManager, DriverStation, Timer, PowerDistribution
 
 import robot_config
 from constants import Constants
 from lib import elasticlib
 from lib.elasticlib import Notification, NotificationLevel
 from robot_container import RobotContainer
+
+
+def _install_safe_power_distribution_logging() -> None:
+    """
+    Install a Power Distribution logger that does not spam CAN errors when no PDH/PDP
+    is present. PyKit's Logger calls LoggedPowerDistribution.getInstance().saveToTable()
+    every cycle; if no device exists at the expected CAN ID, that causes repeated
+    "CAN: Message not found: Module N" errors.
+    """
+    module_id = getattr(
+        Constants.CanIDs, "POWER_DISTRIBUTION_MODULE_ID", None
+    )
+    if module_id is not None:
+        # PDH/PDP present: use real device but catch CAN errors so one bad cycle doesn't spam
+        class _SafeLoggedPowerDistribution(LoggedPowerDistribution):
+            def saveToTable(self, table):
+                try:
+                    super().saveToTable(table)
+                except Exception:
+                    table.put("Voltage", 0.0)
+                    table.put("TotalCurrent", 0.0)
+                    table.put("TotalPower", 0.0)
+                    table.put("TotalEnergy", 0.0)
+                    table.put("Temperature", 0.0)
+                    table.put("ChannelCurrentsList", [])
+                    table.put("ChannelCurrentsTotal", 0.0)
+
+        LoggedPowerDistribution.instance = _SafeLoggedPowerDistribution(
+            moduleId=module_id,
+            moduleType=PowerDistribution.ModuleType.kRev,
+        )
+    else:
+        # No PDH: stub that never touches CAN
+        class _StubLoggedPowerDistribution(LoggedPowerDistribution):
+            def __init__(self) -> None:
+                self.moduleId = 0
+                self.moduleType = PowerDistribution.ModuleType.kRev
+                self.distribution = None
+
+            def saveToTable(self, table):
+                table.put("Voltage", 0.0)
+                table.put("TotalCurrent", 0.0)
+                table.put("TotalPower", 0.0)
+                table.put("TotalEnergy", 0.0)
+                table.put("Temperature", 0.0)
+                table.put("ChannelCurrentsList", [])
+                table.put("ChannelCurrentsTotal", 0.0)
+
+        LoggedPowerDistribution.instance = _StubLoggedPowerDistribution()
 
 class Dwayne(LoggedRobot):
 
@@ -58,6 +108,9 @@ class Dwayne(LoggedRobot):
                 self.useTiming = False
                 Logger.setReplaySource(LogReplaySource())
                 Logger.addDataReciever(WPILOGWriter(None))
+
+        # Avoid CAN errors from pykit when no PDH/PDP is on the bus (or wrong module ID)
+        _install_safe_power_distribution_logging()
 
         # Start PyKit logger
         Logger.start()
