@@ -245,12 +245,13 @@ class RobotContainer:
             self._function_controller.povUp(): self.superstructure.Goal.CLIMBREADY,
             self._function_controller.povDown(): self.superstructure.Goal.CLIMB,
         }
-        self._function_controller.y().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.HUB)))
-        print("turret to hub")
-        self._function_controller.x().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.DEPOT)))
-        print("turret to depot")
-        self._function_controller.b().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.OUTPOST)))
-        print("turret to outpost")
+        if self.turret is not None:
+            self._function_controller.y().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.HUB)))
+            print("turret to hub")
+            self._function_controller.x().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.DEPOT)))
+            print("turret to depot")
+            self._function_controller.b().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.OUTPOST)))
+            print("turret to outpost")
 
         self._function_controller.povUp().onTrue(
             self.climber.set_desired_state_command(self.climber.SubsystemState.EXTEND)
