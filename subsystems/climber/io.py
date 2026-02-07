@@ -27,15 +27,18 @@ class ClimberIO(ABC):
     class ClimberIOInputs:
         """Inputs from the climber hardware/simulation."""
         # Motor status
-        motor_connected: bool = False
-        motor_position: radians = 0.0
-        motor_velocity: radians_per_second = 0.0
-        motor_applied_volts: volts = 0.0
-        motor_current: amperes = 0.0
-        motor_temperature: celsius = 0.0
+        climber_connected: bool = False
+        climber_position: radians = 0.0
+        climber_velocity: radians_per_second = 0.0
+        climber_applied_volts: volts = 0.0
+        climber_current: amperes = 0.0
+        climber_temperature: celsius = 0.0
 
     def update_inputs(self, inputs: ClimberIOInputs) -> None:
         """Update the inputs with current hardware/simulation state."""
+        pass
+
+    def set_open_loop(self, output: float) -> None:
         pass
 
     def set_position(self, radians: float) -> None:
@@ -92,21 +95,17 @@ class ClimberIOTalonFX(ClimberIO):
         )
 
         # Update motor inputs
-        inputs.motor_connected = motor_status.is_ok()
-        inputs.motor_position = self._position.value_as_double
-        inputs.motor_velocity = self._velocity.value_as_double
-        inputs.motor_applied_volts = self._applied_volts.value_as_double
-        inputs.motor_current = self._current.value_as_double
-        inputs.motor_temperature = self._temperature.value_as_double
+        inputs.climber_connected = motor_status.is_ok()
+        inputs.climber_position = self._position.value_as_double
+        inputs.climber_velocity = self._velocity.value_as_double
+        inputs.climber_applied_volts = self._applied_volts.value_as_double
+        inputs.climber_current = self._current.value_as_double
+        inputs.climber_temperature = self._temperature.value_as_double
 
     def set_position(self, radians: float) -> None:
         """Set the motor position."""
         self._position_request = PositionVoltage(radiansToRotations(radians))
         self._motor.set_control(self._position_request)
-
-    #def get_position(self) -> float:
-        #return self._motor.get_position().value
-
 
 class ClimberIOSim(ClimberIO):
     """
@@ -119,7 +118,7 @@ class ClimberIOSim(ClimberIO):
         self._motor_velocity: float = 0.0
         self._motor_applied_volts: float = 0.0
 
-        self._motor_type = DCMotor.krakenX60FOC(1)
+        self._motor_type = DCMotor.krakenX60(1)
         self._climber_sim = DCMotorSim(
             LinearSystemId.DCMotorSystem(
                 self._motor_type,
@@ -150,12 +149,12 @@ class ClimberIOSim(ClimberIO):
         self._climber_sim.update(0.02)  # 20ms periodic
 
         # Update inputs
-        inputs.motor_connected = True
-        inputs.motor_position = self._climber_sim.getAngularPosition()
-        inputs.motor_velocity = self._climber_sim.getAngularAcceleration()
-        inputs.motor_applied_volts = self._motor_applied_volts
-        inputs.motor_current = abs(self._climber_sim.getCurrentDraw())  # Rough current estimate
-        inputs.motor_temperature = 25.0  # Room temperature
+        inputs.climber_connected = True
+        inputs.climber_position = self._climber_sim.getAngularPosition()
+        inputs.climber_velocity = self._climber_sim.getAngularAcceleration()
+        inputs.climber_applied_volts = self._motor_applied_volts
+        inputs.climber_current = abs(self._climber_sim.getCurrentDraw())  # Rough current estimate
+        inputs.climber_temperature = 25.0  # Room temperature
 
     def set_open_loop(self, output):
         self._closed_loop = False
@@ -164,6 +163,3 @@ class ClimberIOSim(ClimberIO):
     def set_position(self, radians: float) -> None:
         self._closed_loop = True
         self._controller.setSetpoint(radians)
-
-    #def get_position(self) -> float:
-        #return self._motor_position

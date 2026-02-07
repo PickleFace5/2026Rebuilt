@@ -6,7 +6,6 @@ from phoenix6.configs.config_groups import Slot0Configs
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import RobotBase
 from wpimath.geometry import Pose2d
-from wpimath.geometry import Pose2d
 
 from robot_config import currentRobot, Robot
 
@@ -55,9 +54,9 @@ class Constants:
             )
         VOLTAGE_INWARDS = None
         VOLTAGE_OUTWARDS = None
-        CLIMB_FULL_THRESHOLD = 100.0
+        CLIMB_FULL_THRESHOLD = 100.0 # Adjust as needed
         SUPPLY_CURRENT = 30.0
-        MOMENT_OF_INERTIA = 0.01
+        MOMENT_OF_INERTIA = 0.3 # Placeholder until climber is finished
 
     class IntakeConstants:
         GEAR_RATIO = None
@@ -143,7 +142,7 @@ def _init_hardware_configs():
             Constants.ClimberConstants.VOLTAGE_OUTWARDS = -4.0
             Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 100.0  # Adjust as needed
             Constants.ClimberConstants.SUPPLY_CURRENT = 30.0
-            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.67
+            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.3
 
         case _:  # COMP or UNKNOWN defaults to COMP
             # Climber
@@ -159,9 +158,9 @@ def _init_hardware_configs():
             Constants.ClimberConstants.VOLTAGE_INWARDS = 16.0
             Constants.ClimberConstants.VOLTAGE_OUTWARDS = -4.0
             Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 100.0  # Adjust as needed
-            Constants.ClimberConstants.SUPPLY_CURRENT = 30.0 # I think that's right idk man
-            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.67 # placeholder
-    
+            Constants.ClimberConstants.SUPPLY_CURRENT = 30.0
+            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.3
+
             # Intake
             Constants.IntakeConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
             Constants.IntakeConstants.GAINS = (Slot0Configs()

@@ -51,7 +51,7 @@ class ClimberSubsystem(StateSubsystem):
         Logger.processInputs("Climber", self._inputs)
 
         # Update alerts
-        self._motor_disconnected_alert.set(not self._inputs.motor_connected)
+        self._motor_disconnected_alert.set(not self._inputs.climber_connected)
 
     def set_desired_state(self, desired_state: SubsystemState) -> None:
         """
@@ -62,12 +62,9 @@ class ClimberSubsystem(StateSubsystem):
         if not super().set_desired_state(desired_state):
             return
 
-        motor_position = self._state_configs.get(
+        motor_rotation = self._state_configs.get(
             desired_state,
             (0.0)
         )
 
-        self._io.set_position(motor_position)
-
-    #def get_position(self) -> float:
-        #return self._io.get_position()
+        self._io.set_position(motor_rotation)

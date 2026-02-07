@@ -72,10 +72,6 @@ class Superstructure(Subsystem):
         if DriverStation.isDisabled():
             return
 
-        # If climber exists and motor position is at the top position, it will go to the full climb state
-        #if self.climber is not None:
-            #if self.climber.get_position() > Constants.ClimberConstants.CLIMB_FULL_THRESHOLD and self.climber.get_current_state() is ClimberSubsystem.SubsystemState.EXTEND:
-                #self.climber.set_desired_state(ClimberSubsystem.SubsystemState.EXTEND)
         # TODO add other subsystem periodic functions
 
     def _set_goal(self, goal: Goal) -> None:

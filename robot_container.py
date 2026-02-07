@@ -252,6 +252,14 @@ class RobotContainer:
         self._function_controller.b().onTrue(self.turret.runOnce(lambda: self.turret.rotate_to_goal(self.turret.Goal.OUTPOST)))
         print("turret to outpost")
 
+        self._function_controller.povUp().onTrue(
+            self.climber.set_desired_state_command(self.climber.SubsystemState.EXTEND)
+        )
+
+        self._function_controller.povDown().onTrue(
+            self.climber.set_desired_state_command(self.climber.SubsystemState.STOW)
+        )
+
     def get_autonomous_command(self) -> commands2.Command:
         return self._auto_chooser.getSelected()
 
