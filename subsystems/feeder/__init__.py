@@ -52,13 +52,13 @@ class FeederSubsystem(StateSubsystem):
         if not super().set_desired_state(desired_state):
             return
 
-        # Get motor voltage for this state
-        motor_voltage = self._state_configs.get(
+        # Get motor rps for this state
+        motor_rps = self._state_configs.get(
             desired_state, 
             0.0
         )
         
-        # Set motor voltage through IO layer
-        self._io.setMotorVoltage(motor_voltage)
+        # Set motor velocity through IO layer
+        self._io.setMotorRPS(motor_rps)
 
     
