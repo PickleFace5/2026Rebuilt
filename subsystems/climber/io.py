@@ -104,7 +104,7 @@ class ClimberIOTalonFX(ClimberIO):
 
     def set_position(self, radians: float) -> None:
         """Set the motor position."""
-        self._position_request.position = PositionVoltage(radiansToRotations(radians))
+        self._position_request.position = radiansToRotations(radians)
         self._motor.set_control(self._position_request)
 
 class ClimberIOSim(ClimberIO):
