@@ -81,7 +81,6 @@ class Dwayne(LoggedRobot):
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
         self._match_time_pub.set(Timer.getMatchTime())
-        self.container._motor_pid_tuner.periodic()
 
     def _simulationPeriodic(self) -> None:
         pass
