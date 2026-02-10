@@ -14,6 +14,8 @@ from constants import Constants
 from lib import elasticlib
 from lib.elasticlib import Notification, NotificationLevel
 from robot_container import RobotContainer
+import util
+
 
 class Dwayne(LoggedRobot):
 
@@ -58,6 +60,9 @@ class Dwayne(LoggedRobot):
                 self.useTiming = False
                 Logger.setReplaySource(LogReplaySource())
                 Logger.addDataReciever(WPILOGWriter(None))
+
+        # Avoid CAN errors from pykit when no PDH/PDP is on the bus (or wrong module ID)
+        util._install_safe_power_distribution_logging()
 
         # Start PyKit logger
         Logger.start()
