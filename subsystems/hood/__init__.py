@@ -12,6 +12,7 @@ from pykit.logger import Logger
 from wpilib import Alert, DriverStation
 from wpimath.filter import Debouncer
 from wpimath.geometry import Pose2d, Rotation2d, Pose3d
+from wpimath.units import degreesToRotations
 
 from constants import Constants
 from subsystems import Subsystem
@@ -61,8 +62,8 @@ class HoodSubsystem(Subsystem):
 
         self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
-
-        self.io.set_position(Rotation2d.fromDegrees(self.angle)) # convert degrees to rotations
+        self.io.set_position(degreesToRotations(self.angle))
+        #self.io.set_position(Rotation2d.fromDegrees(self.angle)) # convert degrees to rotations
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
 

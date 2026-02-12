@@ -44,7 +44,7 @@ class HoodIO(ABC):
     def update_inputs(self, inputs: HoodIOInputs) -> None:
         """Update the inputs with current hardware/simulation state."""
 
-    def set_position(self, rotation: Rotation2d) -> None:
+    def set_position(self, rotations: float) -> None:
         """set rotation value (0-1) for the motor to go to."""
 
 # pylint: disable=too-many-instance-attributes
@@ -80,6 +80,7 @@ class HoodIOTalonFX(HoodIO):
         self.current = self.hood_motor.get_stator_current()
         self.temperature = self.hood_motor.get_device_temp()
         self.setpoint = self.hood_motor.get_closed_loop_reference()
+        self.zero_position = self.hood_motor.get_position()
 
         # Configure update frequencies
         BaseStatusSignal.set_update_frequency_for_all(
@@ -117,9 +118,15 @@ class HoodIOTalonFX(HoodIO):
         inputs.hood_temperature = self.temperature.value_as_double
         inputs.hood_setpoint = self.setpoint.value_as_double
 
-    def set_position(self, rotation: Rotation2d) -> None:
+    def set_position(self, rotations:float) -> None:
         """Set the position."""
-        self.hood_motor.set_control(self.position_request)
+        """print(f"Hood setting position to {rotations}, zero position is {self.zero_position.value_as_double}") 
+        max_rotations = 0.15
+        if(rotations > max_rotations):
+            rotations = max_rotations
+        self.position_request = PositionVoltage(rotations)
+        self.hood_motor.set_control(self.position_request)"""
+        pass
 
 class HoodIOSim(HoodIO):
     """Sim version of HoodIO."""
@@ -163,7 +170,7 @@ class HoodIOSim(HoodIO):
         self.closed_loop = False
         self.applied_volts = output
 
-    def set_position(self, rotation: Rotation2d) -> None:
+    def set_position(self, rotations: float) -> None:
         """Set the position."""
         self.closed_loop = True
-        self.controller.setSetpoint(rotation.radians())
+        self.controller.setSetpoint(rotations.radians())

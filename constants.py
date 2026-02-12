@@ -11,7 +11,6 @@ from robot_config import currentRobot, Robot
 
 
 class Constants:
-    tuningMode: Final[bool] = False
 
     class Mode(Enum):
         # Running on a real robot.
@@ -43,6 +42,13 @@ class Constants:
         TURRET_CANCODER = 17
         HOOD_CANCODER = 18
 
+        # Power Distribution (REV PDH or CTRE PDP). Set to None if no PDH/PDP on CAN bus
+        # to avoid "CAN: Message not found: Module N" errors from pykit logging.
+        POWER_DISTRIBUTION_MODULE_ID: Final[int | None] = None
+
+    class GeneralConstants:
+        GAME_PIECE_WEIGHT = 0.215
+
     class ClimberConstants:
         GEAR_RATIO = 61504.0 / 189
         GAINS = (Slot0Configs()
@@ -61,22 +67,28 @@ class Constants:
 
     class IntakeConstants:
         GEAR_RATIO = None
+        GAINS: Slot0Configs = None
         GAINS = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
+        MOMENT_OF_INERTIA = None
+        FEED_FORWARD = None
 
     class LauncherConstants:
         GEAR_RATIO = None
-        GAINS = None
+        GAINS: Slot0Configs = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
+        MOMENT_OF_INERTIA = None
+        FLYWHEEL_RADIUS = None
+        FEED_FORWARD = None
+        MAX_RPS = None
 
 
     class FeederConstants:
         GEAR_RATIO = None
-        GAINS = None
+        GAINS: Slot0Configs = None
         SUPPLY_CURRENT = None
-        INSIDE_FRAME_ANGLE = None
+        MOMENT_OF_INERTIA = None
+        FEED_FORWARD = None
 
     class VisionConstants:
         FRONT = "limelight-front"
@@ -104,7 +116,7 @@ class Constants:
                 .with_k_s(0.0)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
-)
+        )
     SUPPLY_CURRENT = 35
 
     class FieldConstants:
@@ -165,33 +177,37 @@ def _init_hardware_configs():
             # Intake
             Constants.IntakeConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
             Constants.IntakeConstants.GAINS = (Slot0Configs()
-                .with_k_p(0.1)
+                .with_k_p(0.45)
                 .with_k_i(0.0)
-                .with_k_d(0.0)
+                .with_k_d(0.003)
                 .with_k_s(0.0)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
             )
             Constants.IntakeConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.IntakeConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
+            Constants.IntakeConstants.MOMENT_OF_INERTIA = 0.0067
+            Constants.IntakeConstants.FEED_FORWARD = 1.1
 
             # Launcher
-            Constants.LauncherConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
+            Constants.LauncherConstants.GEAR_RATIO = 1.25  # Adjust based on actual gear ratio
             Constants.LauncherConstants.GAINS = (Slot0Configs()
-                .with_k_p(0.1)
+                .with_k_p(0.3)
                 .with_k_i(0.0)
                 .with_k_d(0.0)
-                .with_k_s(0.0)
+                .with_k_s(0.0985)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
             )
             Constants.LauncherConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.LauncherConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
+            Constants.LauncherConstants.MOMENT_OF_INERTIA =  0.0030700826
+            Constants.LauncherConstants.FLYWHEEL_RADIUS = 2.0 * 0.0254
+            #Constants.LauncherConstants.FEED_FORWARD = 4.0
+            Constants.LauncherConstants.MAX_RPS = 75.0
 
             # Feeder
             Constants.FeederConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
             Constants.FeederConstants.GAINS = (Slot0Configs()
-                .with_k_p(0.1)
+                .with_k_p(0.3)
                 .with_k_i(0.0)
                 .with_k_d(0.0)
                 .with_k_s(0.0)
@@ -199,7 +215,8 @@ def _init_hardware_configs():
                 .with_k_a(0.0)
             )
             Constants.FeederConstants.SUPPLY_CURRENT = 30.0  # Amperes
-            Constants.FeederConstants.INSIDE_FRAME_ANGLE = 45.0  # Degrees (example value)
-
+            Constants.FeederConstants.MOMENT_OF_INERTIA = 0.0067
+            Constants.FeederConstants.FEED_FORWARD = 3.0
+            
 # Initialize hardware configs at module load time
 _init_hardware_configs()
