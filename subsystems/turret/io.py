@@ -4,7 +4,7 @@ from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import PositionVoltage
+from phoenix6.controls import PositionVoltage, VelocityVoltage
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue, InvertedValue
 from pykit.autolog import autolog
@@ -48,6 +48,14 @@ class TurretIO(ABC):
             radians: The position in radians to set the turret to.
         """
         pass
+    
+    def set_velocity(self, velocity: float) -> None:
+        """
+        Set the turret velocity in radians per second.
+        Args:
+            velocity: The velocity in radians per second to set the turret to.
+        """
+        pass
 
 
 class TurretIOTalonFX(TurretIO):
@@ -89,6 +97,7 @@ class TurretIOTalonFX(TurretIO):
         self.turret_motor.optimize_bus_utilization()
 
         self.position_request = PositionVoltage(0)
+        self.velocity_request = VelocityVoltage(0)
 
     def update_inputs(self, inputs: TurretIO.TurretIOInputs):
         motor_status = BaseStatusSignal.refresh_all(
@@ -116,6 +125,15 @@ class TurretIOTalonFX(TurretIO):
         """
         self.position_request = PositionVoltage(radiansToRotations(radians))
         self.turret_motor.set_control(self.position_request)
+
+    def set_velocity(self, velocity: float) -> None:
+        """
+        Set the turret velocity in radians per second using closed loop control.
+        Args:
+            velocity: The velocity in radians per second to set the turret to.
+        """
+        self.velocity_request = VelocityVoltage(radiansToRotations(velocity))
+        self.turret_motor.set_control(self.velocity_request)
 
 
 
@@ -173,4 +191,12 @@ class TurretIOSim(TurretIO):
         self.closed_loop = True
         self.controller.setSetpoint(radians)
 
-    
+    def set_velocity(self, velocity: float) -> None:
+        """
+        Set the turret velocity in radians per second.
+        Args:
+            velocity: The velocity in radians per second to set the turret to.
+        """
+        self.closed_loop = True
+        self.controller.setSetpoint(velocity)
+        # Could possibly be wrong since it's using velocity and not radians    
