@@ -63,13 +63,17 @@ class TurretSubsystem(Subsystem):
             case self.Goal.DEPOT:
                 xdist = abs(self.robot_pose_supplier().X() - Constants.GoalLocations.BLUE_DEPOT_PASS.X()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().X() - Constants.GoalLocations.RED_DEPOT_PASS.X())
                 ydist = abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.BLUE_DEPOT_PASS.Y()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.RED_DEPOT_PASS.Y())
-            case _:
-                print("No turret goal set, returning 0.0")
+            case self.Goal.NONE:
                 return 0.0
         return atan(ydist / xdist)
 
     def rotate_to_goal(self, target: Goal):
         # This function might not work because it probably isn't periodic so it'll only set the output once and then not check if the angle is correct until it's called again (which is when the target changes)
         self.goal = target
-        target_radians = self.get_radians_to_goal()
-        self._io.set_position(target_radians)
+        if self.goal != self.Goal.NONE:
+            target_radians = self.get_radians_to_goal()
+            self._io.set_position(target_radians)
+
+    def rotate_manually(self, axis: float): # Axis is the value of the X-axis from a joystick
+        target_velocity = axis * Constants.TurretConstants.MAX_MANUAL_VELOCITY
+        self._io.set_velocity(target_velocity)

@@ -5,7 +5,7 @@ from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import PositionVoltage
+from phoenix6.controls import PositionVoltage, VelocityVoltage
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import InvertedValue
 from phoenix6.signals import NeutralModeValue
@@ -16,7 +16,7 @@ from wpimath.controller import PIDController
 from wpimath.geometry import Rotation2d
 from wpimath.system.plant import DCMotor
 from wpimath.system.plant import LinearSystemId
-from wpimath.units import radians, volts, amperes
+from wpimath.units import radians, radiansToRotations, volts, amperes
 
 from constants import Constants
 from util import tryUntilOk
@@ -46,6 +46,13 @@ class HoodIO(ABC):
 
     def set_position(self, rotations: float) -> None:
         """set rotation value (0-1) for the motor to go to."""
+
+    def set_velocity(self, velocity: float) -> None:
+        """
+        Set the hood velocity in radians per second.
+        Args:
+            velocity: The velocity in radians per second to set the hood to.
+        """
 
 # pylint: disable=too-many-instance-attributes
 class HoodIOTalonFX(HoodIO):
@@ -96,6 +103,7 @@ class HoodIOTalonFX(HoodIO):
 
         # Voltage control request
         self.position_request = PositionVoltage(0)
+        self.velocity_request = VelocityVoltage(0)
 
     def update_inputs(self, inputs: HoodIO.HoodIOInputs) -> None:
         """Update inputs with current motor state."""
@@ -121,6 +129,11 @@ class HoodIOTalonFX(HoodIO):
     def set_position(self, rotation: float) -> None:
         """Set the position."""
         self.hood_motor.set_control(self.position_request.with_position(rotation))
+
+    def set_velocity(self, velocity: float) -> None:
+        """Set the velocity."""
+        self.velocity_request = VelocityVoltage(radiansToRotations(velocity))
+        self.hood_motor.set_control(self.velocity_request)
 
 class HoodIOSim(HoodIO):
     """Sim version of HoodIO."""
@@ -167,4 +180,8 @@ class HoodIOSim(HoodIO):
     def set_position(self, rotations: float) -> None:
         """Set the position."""
         self.closed_loop = True
-        self.controller.setSetpoint(rotations.radians())
+        self.controller.setSetpoint(rotation.radians())
+
+    def set_velocity(self, velocity: float) -> None:
+        self.closed_loop = True
+        self.controller.setSetpoint(velocity)

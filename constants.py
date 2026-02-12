@@ -106,7 +106,8 @@ class Constants:
         GEAR_RATIO = 170/36
         SUPPLY_CURRENT = 40
         MOI = .455
-
+        MAX_MANUAL_VELOCITY = 20 # rad/sec
+        
     class HoodConstants:
         GEAR_RATIO = 68/3
         GAINS = (Slot0Configs()
@@ -121,6 +122,7 @@ class Constants:
         # positions
         STOW = Rotation2d(0)
         PASSING = Rotation2d(0.1)
+        MAX_MANUAL_VELOCITY = 20
 
     class FieldConstants:
         HUB_POSE = Pose2d(4.625594, 4.034536, 0.0)  # blue hub, flip when needed
