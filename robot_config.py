@@ -113,8 +113,9 @@ def has_subsystem(subsystem_name: str) -> bool:
         "drivetrain",  # Always present
         "vision",      # Always present
         "feeder",      # Competition robot has feeder
-        #"launcher",    # Competition robot has launcher
+        "launcher",    # Competition robot has launcher
         "intake",      # Competition robot has intake
+        "hood",       # Competition robot has hood
         #"climber",     # Competition robot has climber
         # Add other Comp subsystems as needed
     }

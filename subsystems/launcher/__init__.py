@@ -42,7 +42,7 @@ class LauncherSubsystem(StateSubsystem):
         
     _state_configs: dict[SubsystemState, float] = {
         # Meters per second
-        SubsystemState.IDLE: velocityToWheelRPS(5.0),
+        SubsystemState.IDLE: 0, #velocityToWheelRPS(5.0),
         SubsystemState.SCORE: velocityToWheelRPS(12.26),
         SubsystemState.PASS: velocityToWheelRPS(10.0),
     }

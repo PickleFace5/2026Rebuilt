@@ -35,9 +35,10 @@ class Superstructure(Subsystem):
             tuple[
                 Optional[VisionSubsystem.SubsystemState]
             ]] = {
-        Goal.DEFAULT: (IntakeSubsystem.SubsystemState.STOP, VisionSubsystem.SubsystemState.ALL_ESTIMATES),
-        Goal.CLIMB: (IntakeSubsystem.SubsystemState.STOP, VisionSubsystem.SubsystemState.ALL_ESTIMATES),
-       
+        Goal.DEFAULT: (IntakeSubsystem.SubsystemState.STOP, ClimberSubsystem.SubsystemState.STOW, VisionSubsystem.SubsystemState.ALL_ESTIMATES),
+        Goal.CLIMBREADY: (IntakeSubsystem.SubsystemState.STOP, ClimberSubsystem.SubsystemState.EXTEND, VisionSubsystem.SubsystemState.ALL_ESTIMATES),
+        Goal.CLIMB: (IntakeSubsystem.SubsystemState.STOP, ClimberSubsystem.SubsystemState.STOW, VisionSubsystem.SubsystemState.ALL_ESTIMATES),
+
     }
 
     def __init__(self, drivetrain: SwerveSubsystem, vision: VisionSubsystem, climber: Optional[ClimberSubsystem] = None, intake: Optional[IntakeSubsystem] = None) -> None:
@@ -71,20 +72,16 @@ class Superstructure(Subsystem):
         if DriverStation.isDisabled():
             return
 
-        # If climber exists and motor position is at the top position, it will go to the full climb state
-        if self.climber is not None:
-            if self.climber.get_position() > Constants.ClimberConstants.CLIMB_FULL_THRESHOLD and self.climber.get_current_state() is ClimberSubsystem.SubsystemState.CLIMB_IN:
-                self.climber.set_desired_state(ClimberSubsystem.SubsystemState.CLIMB_IN_FULL)
         # TODO add other subsystem periodic functions
 
     def _set_goal(self, goal: Goal) -> None:
         self._goal = goal
 
         vision_state = self._goal_to_states.get(goal, (None, None, None, None))
-        
+
         if vision_state:
             self.VisionSubsystem.set_desired_state(vision_state)
-        
+
         # Handle intake if present
         if self.intake is not None:
             intake_state = self.intake.get_current_state()
@@ -94,7 +91,7 @@ class Superstructure(Subsystem):
         """ Safety check example of intake being in the frame """
         if self.intake is None:
             return True  # No safety checks needed if intake doesn't exist
-        
+
         if intake_state == self.intake.get_current_state():
             return False
         return not (

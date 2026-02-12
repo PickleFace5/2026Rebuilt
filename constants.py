@@ -50,14 +50,20 @@ class Constants:
         GAME_PIECE_WEIGHT = 0.215
 
     class ClimberConstants:
-        GEAR_RATIO = None
-        GAINS = None
-        SERVO_PORT = None
-        SERVO_ENGAGED_ANGLE = None
+        GEAR_RATIO = 61504.0 / 189
+        GAINS = (Slot0Configs()
+                .with_k_p(40.0)
+                .with_k_i(0.0)
+                .with_k_d(0.0)
+                .with_k_s(0.0)
+                .with_k_v(0.0)
+                .with_k_a(0.0)
+            )
         VOLTAGE_INWARDS = None
-        SERVO_DISENGAGED_ANGLE = None
         VOLTAGE_OUTWARDS = None
-        CLIMB_FULL_THRESHOLD = None
+        CLIMB_FULL_THRESHOLD = 5.0 # Adjust as needed
+        SUPPLY_CURRENT = 30.0
+        MOMENT_OF_INERTIA = 0.3 # Placeholder until climber is finished
 
     class IntakeConstants:
         GEAR_RATIO = None
@@ -73,6 +79,8 @@ class Constants:
         SUPPLY_CURRENT = None
         MOMENT_OF_INERTIA = None
         FLYWHEEL_RADIUS = None
+        FEED_FORWARD = None
+        MAX_RPS = None
 
 
     class FeederConstants:
@@ -139,37 +147,35 @@ def _init_hardware_configs():
             # Climber
             Constants.ClimberConstants.GEAR_RATIO = 61504.0 / 189
             Constants.ClimberConstants.GAINS = (Slot0Configs()
-                .with_k_p(1.0)
+                .with_k_p(40.0)
                 .with_k_i(0.0)
                 .with_k_d(0.0)
                 .with_k_s(0.0)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
             )
-            Constants.ClimberConstants.SERVO_PORT = 0
-            Constants.ClimberConstants.SERVO_ENGAGED_ANGLE = 0.0
-            Constants.ClimberConstants.SERVO_DISENGAGED_ANGLE = 90.0
             Constants.ClimberConstants.VOLTAGE_INWARDS = 16.0
             Constants.ClimberConstants.VOLTAGE_OUTWARDS = -4.0
-            Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 100.0  # Adjust as needed
+            Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 5.0  # Adjust as needed
+            Constants.ClimberConstants.SUPPLY_CURRENT = 30.0
+            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.3
 
         case _:  # COMP or UNKNOWN defaults to COMP
             # Climber
             Constants.ClimberConstants.GEAR_RATIO = 61504.0 / 189  # Same or different?
             Constants.ClimberConstants.GAINS = (Slot0Configs()
-                .with_k_p(1.0)
+                .with_k_p(40.0)
                 .with_k_i(0.0)
                 .with_k_d(0.0)
                 .with_k_s(0.0)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
             )
-            Constants.ClimberConstants.SERVO_PORT = 0
-            Constants.ClimberConstants.SERVO_ENGAGED_ANGLE = 0.0
-            Constants.ClimberConstants.SERVO_DISENGAGED_ANGLE = 90.0
             Constants.ClimberConstants.VOLTAGE_INWARDS = 16.0
             Constants.ClimberConstants.VOLTAGE_OUTWARDS = -4.0
-            Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 100.0  # Adjust as needed
+            Constants.ClimberConstants.CLIMB_FULL_THRESHOLD = 5.0  # Adjust as needed
+            Constants.ClimberConstants.SUPPLY_CURRENT = 30.0
+            Constants.ClimberConstants.MOMENT_OF_INERTIA = 0.3
 
             # Intake
             Constants.IntakeConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio
@@ -188,16 +194,18 @@ def _init_hardware_configs():
             # Launcher
             Constants.LauncherConstants.GEAR_RATIO = 1.25  # Adjust based on actual gear ratio
             Constants.LauncherConstants.GAINS = (Slot0Configs()
-                .with_k_p(0.175)
+                .with_k_p(0.3)
                 .with_k_i(0.0)
                 .with_k_d(0.0)
-                .with_k_s(0.45)
-                .with_k_v(0.1)
+                .with_k_s(0.0985)
+                .with_k_v(0.0)
                 .with_k_a(0.0)
             )
             Constants.LauncherConstants.SUPPLY_CURRENT = 30.0  # Amperes
             Constants.LauncherConstants.MOMENT_OF_INERTIA =  0.0030700826
             Constants.LauncherConstants.FLYWHEEL_RADIUS = 2.0 * 0.0254
+            #Constants.LauncherConstants.FEED_FORWARD = 4.0
+            Constants.LauncherConstants.MAX_RPS = 75.0
 
             # Feeder
             Constants.FeederConstants.GEAR_RATIO = 1.0  # Adjust based on actual gear ratio

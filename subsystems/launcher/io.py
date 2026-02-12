@@ -4,9 +4,9 @@ from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import VelocityVoltage, Follower
+from phoenix6.controls import VelocityVoltage, Follower, VoltageOut
 from phoenix6.hardware import TalonFX
-from phoenix6.signals import NeutralModeValue, MotorAlignmentValue
+from phoenix6.signals import NeutralModeValue, MotorAlignmentValue, InvertedValue
 
 from pykit.autolog import autolog
 from wpimath.units import radians, radians_per_second, volts, amperes, celsius
@@ -69,9 +69,9 @@ class LauncherIOTalonFX(LauncherIO):
         _motor_config.slot0 = LauncherConstants.GAINS
         _motor_config.motor_output.neutral_mode = NeutralModeValue.COAST
         _motor_config.feedback.sensor_to_mechanism_ratio = LauncherConstants.GEAR_RATIO
+        _motor_config.motor_output.inverted = InvertedValue.CLOCKWISE_POSITIVE
 
         tryUntilOk(5, lambda: self._main_motor.configurator.apply(_motor_config, 0.25))
-        tryUntilOk(5, lambda: self._main_motor.set_position(0, 0.25))
 
         # Create status signals for motor
         self._position: Final = self._main_motor.get_position()
@@ -92,7 +92,8 @@ class LauncherIOTalonFX(LauncherIO):
         self._main_motor.optimize_bus_utilization()
 
         # Control requests
-        self._voltageRequest: Final[VelocityVoltage] = VelocityVoltage(0)
+        self._velocityRequest: Final[VelocityVoltage] = VelocityVoltage(0)
+        self._voltageRequest: Final[VoltageOut] = VoltageOut(0)
         self._follower_motor.set_control(Follower(CanIds.LAUNCHER_TOP_TALON, MotorAlignmentValue.ALIGNED))
 
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:
@@ -116,8 +117,13 @@ class LauncherIOTalonFX(LauncherIO):
 
     def setMotorRPS(self, rps: float) -> None:
         """Set the motor output velocity."""
-        self._voltageRequest.velocity = rps
-        self._main_motor.set_control(self._voltageRequest)
+        print(f"Launcher setting motor RPS to {rps}")
+        if rps == 0:
+            self._voltageRequest = VoltageOut(0)
+            self._main_motor.set_control(self._voltageRequest)
+        else:
+            self._velocityRequest.velocity = rps
+            self._main_motor.set_control(self._velocityRequest)
 
 
 class LauncherIOSim(LauncherIO):
