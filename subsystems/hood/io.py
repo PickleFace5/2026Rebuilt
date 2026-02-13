@@ -130,7 +130,7 @@ class HoodIOTalonFX(HoodIO):
 
     def set_position(self, rotation: float) -> None:
         """Set the position."""
-        rotation = rotation - self._zero_position #zero position is the position of the hood when the robot is in the stow position
+        rotation = rotation + self._zero_position #zero position is the position of the hood when the robot is in the stow position
         self.hood_motor.set_control(self.position_request.with_position(rotation))
 
     def set_velocity(self, velocity: float) -> None:

@@ -126,7 +126,7 @@ class TurretIOTalonFX(TurretIO):
         Args:
             radians: The position in radians to set the turret to.
         """
-        rotations = radiansToRotations(radians) - self._zero_position
+        rotations = radiansToRotations(radians) + self._zero_position
         self.position_request = PositionVoltage(rotations)
         self.turret_motor.set_control(self.position_request)
 
