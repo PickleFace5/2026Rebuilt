@@ -120,8 +120,8 @@ class Constants:
         )
         SUPPLY_CURRENT = 35
         # positions
-        STOW = Rotation2d(0)
-        PASSING = Rotation2d(0.1)
+        STOW = 0
+        PASSING = 0.1
         MAX_MANUAL_VELOCITY = 20
 
     class FieldConstants:

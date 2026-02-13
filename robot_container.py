@@ -300,13 +300,17 @@ class RobotContainer:
             Trigger(lambda: self._function_controller.getLeftTriggerAxis() > 0.75).whileTrue(
                 self.hood.runOnce(lambda: self.hood.rotate_manually(self._function_controller.getRightY()))
             )
-        self._function_controller.povUp().onTrue(
-            self.climber.set_desired_state_command(self.climber.SubsystemState.EXTEND)
-        )
+        
+        if self.climber is not None:
+            self._function_controller.povUp().onTrue(
+                self.climber.set_desired_state_command(self.climber.SubsystemState.EXTEND)
+            )
+            self._function_controller.povDown().onTrue(
+                self.climber.set_desired_state_command(self.climber.SubsystemState.STOW)
+            )
+        else:
+            print("Climber subsystem not available on this robot, unable to bind climber buttons")
 
-        self._function_controller.povDown().onTrue(
-            self.climber.set_desired_state_command(self.climber.SubsystemState.STOW)
-        )
 
     def get_autonomous_command(self) -> commands2.Command:
         return self._auto_chooser.getSelected()

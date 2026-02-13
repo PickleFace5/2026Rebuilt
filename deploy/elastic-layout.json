@@ -127,6 +127,112 @@
           }
         ]
       }
+    },
+    {
+      "name": "Tuning",
+      "grid_layout": {
+        "layouts": [],
+        "containers": [
+          {
+            "title": "Hood Zero Position",
+            "x": 0,
+            "y": 0,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Hood/hood_zero_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Hood Current Position",
+            "x": 256,
+            "y": 0,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Hood/hood_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Turret Zero Position",
+            "x": 0,
+            "y": 128,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Turret/turret_zero_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Turret Current Position",
+            "x": 256,
+            "y": 128,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Turret/turret_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Launcher Velocity",
+            "x": 0,
+            "y": 256,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Launcher/motorVelocity",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Climber Zero Position",
+            "x": 0,
+            "y": 384,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Climber/climber_zero_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Climber Current Position",
+            "x": 256,
+            "y": 384,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/AdvantageKit/RealOutputs/Climber/climber_position",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          }
+        ]
+      }
     }
   ]
 }

@@ -31,7 +31,7 @@ class HoodSubsystem(StateSubsystem):
         PASS = auto()
 
     _state_configs: dict[SubsystemState, tuple[bool, float]] = {
-        SubsystemState.AIMBOT: True,
+        SubsystemState.AIMBOT: (True, 0.0),
         SubsystemState.STOW: (False, Constants.HoodConstants.STOW),
         SubsystemState.PASS: (False, Constants.HoodConstants.PASSING)
 
@@ -92,9 +92,11 @@ class HoodSubsystem(StateSubsystem):
         if not super().set_desired_state(desired_state):
             return
 
-        hood_pos = self._state_configs.get(desired_state, 0.0)
+        auto_aim, hood_pos = self._state_configs.get(desired_state, 0.0)
 
-        self.io.set_position(Rotation2d(hood_pos))
+        if auto_aim:
+            hood_pos = degreesToRotations(self.angle)
+        self.io.set_position(hood_pos)
 
     def get_current_state(self) -> SubsystemState | None:
         """get state"""

@@ -33,6 +33,7 @@ class ClimberIO(ABC):
         climber_applied_volts: volts = 0.0
         climber_current: amperes = 0.0
         climber_temperature: celsius = 0.0
+        climber_zero_position: float = 0.0
 
     def update_inputs(self, inputs: ClimberIOInputs) -> None:
         """Update the inputs with current hardware/simulation state."""
@@ -69,6 +70,7 @@ class ClimberIOTalonFX(ClimberIO):
         self._applied_volts: Final = self._motor.get_motor_voltage()
         self._current: Final = self._motor.get_stator_current()
         self._temperature: Final = self._motor.get_device_temp()
+        self._zero_position: Final = self._position.value_as_double
 
         # Configure update frequencies
         BaseStatusSignal.set_update_frequency_for_all(
@@ -101,10 +103,12 @@ class ClimberIOTalonFX(ClimberIO):
         inputs.climber_applied_volts = self._applied_volts.value_as_double
         inputs.climber_current = self._current.value_as_double
         inputs.climber_temperature = self._temperature.value_as_double
+        inputs.climber_zero_position = self._zero_position
 
     def set_position(self, radians: float) -> None:
         """Set the motor position."""
         self._position_request.position = radiansToRotations(radians)
+        self._position_request.position = self._position_request.position - self._zero_position
         self._motor.set_control(self._position_request)
 
 class ClimberIOSim(ClimberIO):
@@ -134,6 +138,7 @@ class ClimberIOSim(ClimberIO):
                                         Constants.ClimberConstants.GAINS.k_i,
                                         Constants.ClimberConstants.GAINS.k_d)
 
+        self._zero_position = 0.0  # Sim starts at 0
 
     def update_inputs(self, inputs: ClimberIO.ClimberIOInputs) -> None:
         """Update inputs with simulated state."""
