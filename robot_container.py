@@ -330,9 +330,20 @@ class RobotContainer:
             Trigger(lambda: self._function_controller.getLeftTriggerAxis() > 0.75).whileTrue(
                 InstantCommand(lambda: self.hood.rotate_manually(self._function_controller.getRightY()))
             )
+            #self._function_controller.getLeftTriggerAxis().onTrue(
         else:
             print("Hood subsystem not available on this robot, unable to bind hood buttons")
         
+        if self.hood is not None:
+            self._function_controller.povUp().onTrue(
+                InstantCommand(lambda: self.hood.increase_angle())
+            )
+            self._function_controller.povDown().onTrue(
+                InstantCommand(lambda: self.hood.decrease_angle())
+            )
+        else:
+            print("Hood subsystem not available on this robot, unable to bind hood buttons")
+
         if self.climber is not None:
             self._function_controller.povUp().onTrue(
                 self.climber.set_desired_state_command(self.climber.SubsystemState.EXTEND)

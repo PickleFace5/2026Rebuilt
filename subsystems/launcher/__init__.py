@@ -58,7 +58,7 @@ class LauncherSubsystem(StateSubsystem):
         
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
-        self.set_desired_state(self.SubsystemState.SCORE)
+        self.set_desired_state(self.SubsystemState.IDLE)
 
         """"
         automatic state switching based on position
