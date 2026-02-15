@@ -131,14 +131,14 @@ class Constants:
     class HoodConstants:
         GEAR_RATIO = 68/3
         GAINS = (Slot0Configs()
-                .with_k_p(6.343)
+                .with_k_p(39.0)
                 .with_k_i(0.0)
                 .with_k_d(0.2)
-                .with_k_s(0.0)
+                .with_k_s(0.3)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
         )
-        SUPPLY_CURRENT = 35
+        SUPPLY_CURRENT = 30
         # positions
         STOW = 0.0
         PASSING = 0.09

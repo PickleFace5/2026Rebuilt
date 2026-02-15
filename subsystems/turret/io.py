@@ -36,6 +36,7 @@ class TurretIO(ABC):
         turret_temperature: celsius = 0.0
         turret_setpoint: radians = 0.0
         turret_zero_position: float = 0.0
+        turret_target_position: float = 0.0
 
 
     def update_inputs(self, inputs: TurretIOInputs) -> None:
@@ -85,6 +86,7 @@ class TurretIOTalonFX(TurretIO):
         self.temperature = self.turret_motor.get_device_temp()
         self.setpoint = self.turret_motor.get_closed_loop_reference()
         self._zero_position = self.position.value_as_double
+        self.target_position = 0.0
 
         BaseStatusSignal.set_update_frequency_for_all(
             50,
@@ -119,6 +121,7 @@ class TurretIOTalonFX(TurretIO):
         inputs.turret_temperature = self.temperature.value_as_double
         inputs.turret_setpoint = self.setpoint.value_as_double
         inputs.turret_zero_position = self._zero_position
+        inputs.turret_target_position = self.target_position
 
     def set_position(self, radians: float) -> None:
         """
@@ -127,12 +130,14 @@ class TurretIOTalonFX(TurretIO):
             radians: The position in radians to set the turret to.
         """
         rotations = radiansToRotations(radians) + self._zero_position
+        self.target_position = rotations
         if rotations > Constants.TurretConstants.MAX_ROTATIONS + self._zero_position:
             rotations = Constants.TurretConstants.MAX_ROTATIONS + self._zero_position
             print("Turret position is too high, setting to max")
         elif rotations < self._zero_position:
             rotations = self._zero_position
             print("Turret position is too low, setting to zero")
+        print(f"Turret setting position to {rotations}, zero position is {self._zero_position}")
         self.position_request = PositionVoltage(rotations)
         self.turret_motor.set_control(self.position_request)
 
@@ -176,6 +181,7 @@ class TurretIOSim(TurretIO):
             )
 
         self._zero_position = 0.0  # Sim starts at 0
+        self.target_position = 0.0
 
     def update_inputs(self, inputs: TurretIO.TurretIOInputs) -> None:
         """Update inputs with simulated state."""
@@ -207,6 +213,7 @@ class TurretIOSim(TurretIO):
             radians: The position in radians to set the turret to.
         """
         self.closed_loop = True
+        self.target_position = radiansToRotations(radians)
         self.controller.setSetpoint(radians)
 
     def set_velocity(self, velocity: float) -> None:

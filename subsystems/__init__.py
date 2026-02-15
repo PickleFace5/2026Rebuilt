@@ -60,6 +60,7 @@ class StateSubsystem(Subsystem, ABC, metaclass=StateSubsystemMeta):
         """
         current_state = self._subsystem_state
         if current_state is desired_state or DriverStation.isTest() or self.is_frozen():
+            print(f"{self.getName()}: State is the same or frozen {self.is_frozen()}, current state is {current_state}, desired state is {desired_state}, or DriverStation is test {DriverStation.isTest()}, returning False")
             return False
         self._subsystem_state = desired_state
         # self._current_state_pub.set(self.get_state_name())

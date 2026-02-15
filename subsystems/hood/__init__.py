@@ -11,12 +11,11 @@ from typing import Callable
 from pathplannerlib.auto import FlippingUtil, AutoBuilder
 from pykit.logger import Logger
 from wpilib import Alert, DriverStation
-from wpimath.filter import Debouncer
-from wpimath.geometry import Pose2d, Rotation2d, Pose3d
+from wpimath.geometry import Pose2d, Pose3d
 from wpimath.units import degreesToRotations
 
 from constants import Constants
-from subsystems import Subsystem, StateSubsystem
+from subsystems import StateSubsystem
 from subsystems.hood.io import HoodIO
 
 
@@ -78,15 +77,15 @@ class HoodSubsystem(StateSubsystem):
         #Logger.recordOutput("Hood/Calculated Angle", self.angle)
         #Logger.recordOutput("Hood/Distance", self.distance)
 
-        if self.get_current_state() == self.SubsystemState.AIMBOT:
+        auto_aim, hood_pos = self._state_configs.get(self.get_current_state(), 0.0)
+        if auto_aim:
             self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
             self.update_angle()
             print(f"Distance: {self.distance}, Angle: {self.angle}")
             self.io.set_position(degreesToRotations(self.angle))
-
-        if self.get_current_state() == self.SubsystemState.STOW or self.get_current_state() == self.SubsystemState.PASS:
-            self.io.set_position(self.get_current_state())
+        else:
+            self.io.set_position(hood_pos)
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
 
@@ -106,7 +105,7 @@ class HoodSubsystem(StateSubsystem):
 
     def get_current_state(self) -> SubsystemState | None:
         """get state"""
-
+        return super().get_current_state()
 
     def get_component_pose(self) -> Pose3d:
         """For advantage scope modelling (placeholder)."""
