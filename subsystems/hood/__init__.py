@@ -44,7 +44,7 @@ class HoodSubsystem(StateSubsystem):
 
         self.io = io
         self.alliance = DriverStation.getAlliance()
-        self.set_desired_state(HoodSubsystem.SubsystemState.STOW)
+        self.set_desired_state(HoodSubsystem.SubsystemState.MANUAL)
 
         self.robot_pose_supplier = robot_pose_supplier
 
@@ -77,7 +77,9 @@ class HoodSubsystem(StateSubsystem):
 
         self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
-        self.io.set_position(degreesToRotations(self.angle))
+
+        self.io.set_position(0.0)
+        #self.io.set_position(degreesToRotations(self.angle))
         #self.io.set_position(Rotation2d.fromDegrees(self.angle)) # convert degrees to rotations
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
@@ -98,7 +100,7 @@ class HoodSubsystem(StateSubsystem):
 
         if auto_aim:
             hood_pos = degreesToRotations(self.angle)
-        self.io.set_position(hood_pos)
+        #self.io.set_position(hood_pos)
 
     def get_current_state(self) -> SubsystemState | None:
         """get state"""
@@ -111,3 +113,15 @@ class HoodSubsystem(StateSubsystem):
         self.set_desired_state(self.SubsystemState.MANUAL)
         target_velocity = axis * Constants.HoodConstants.MAX_MANUAL_VELOCITY
         self.io.set_velocity(target_velocity)
+
+    def decrease_angle(self):
+        self.set_desired_state(self.SubsystemState.MANUAL)
+        print("decreasing angle")
+        self.io.target_position -= 0.01
+        self.io.set_position(-0.01)
+
+    def increase_angle(self):
+        self.set_desired_state(self.SubsystemState.MANUAL)
+        print("increasing angle")
+        self.io.target_position += 0.01
+        self.io.set_position(.01)

@@ -96,16 +96,17 @@ class Constants:
 
     class TurretConstants:
         GAINS = (Slot0Configs()
-                .with_k_p(1.0)
+                .with_k_p(5.4)
                 .with_k_i(0.0)
-                .with_k_d(0.0)
-                .with_k_s(0.0)
+                .with_k_d(0.2)
+                .with_k_s(0.49)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
             )
         GEAR_RATIO = 170/36
         SUPPLY_CURRENT = 40
         MOI = .455
+        MAX_ROTATIONS = 0.865967
         MAX_MANUAL_VELOCITY = 20 # rad/sec
         
     class HoodConstants:
@@ -124,6 +125,7 @@ class Constants:
         PASSING = 0.1
         MAX_MANUAL_VELOCITY = 20
         HARDCODED_POSITION = 0.1
+        MAX_ROTATIONS = 0.092285
 
     class FieldConstants:
         HUB_POSE = Pose2d(4.625594, 4.034536, 0.0)  # blue hub, flip when needed
