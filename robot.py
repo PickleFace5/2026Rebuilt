@@ -81,6 +81,8 @@ class Dwayne(LoggedRobot):
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
         self._match_time_pub.set(Timer.getMatchTime())
+        if self.container.drivetrain is not None:
+            self.container._field.setRobotPose(self.container.drivetrain.get_state().pose)
 
     def _simulationPeriodic(self) -> None:
         pass

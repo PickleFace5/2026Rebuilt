@@ -11,7 +11,7 @@ from phoenix6 import swerve
 from phoenix6.configs import TalonFXConfiguration
 from phoenix6.configs.config_groups import NeutralModeValue, MotorOutputConfigs, FeedbackConfigs, InvertedValue
 from pykit.networktables.loggeddashboardchooser import LoggedDashboardChooser
-from wpilib import XboxController, getDeployDirectory
+from wpilib import Field2d, SmartDashboard, XboxController, getDeployDirectory
 from wpimath.geometry import Rotation2d
 from wpimath.units import rotationsToRadians
 
@@ -46,6 +46,10 @@ class RobotContainer:
 
         self._driver_controller = commands2.button.CommandXboxController(0)
         self._function_controller = commands2.button.CommandXboxController(1)
+
+        # Field2d for Elastic dashboard (robot position on field image)
+        self._field = Field2d()
+        SmartDashboard.putData("Field", self._field)
 
         # Initialize subsystems as None - will be created conditionally
         self.climber: Optional[ClimberSubsystem] = None
