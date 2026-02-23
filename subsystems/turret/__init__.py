@@ -63,7 +63,9 @@ class TurretSubsystem(StateSubsystem):
 
         if self.get_current_state() != self.SubsystemState.MANUAL:
             self.rotate_to_goal(self.get_current_state())
-        
+
+        super().periodic()
+
     def get_radians_to_goal(self) -> float:
         """
         Field-frame angle (radians) from robot to goal. 0 = +X (red alliance wall), CCW positive.
@@ -90,13 +92,20 @@ class TurretSubsystem(StateSubsystem):
         is_blue = DriverStation.getAlliance() == DriverStation.Alliance.kBlue
         match state:
             case self.SubsystemState.HUB:
-                return Constants.GoalLocations.BLUE_HUB if is_blue else Constants.GoalLocations.RED_HUB
+                xdist = abs(self.robot_pose_supplier().X() - Constants.GoalLocations.BLUE_HUB.X()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().X() - Constants.GoalLocations.RED_HUB.X())
+                ydist = abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.BLUE_HUB.Y()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.RED_HUB.Y())
             case self.SubsystemState.OUTPOST:
-                return Constants.GoalLocations.BLUE_OUTPOST_PASS if is_blue else Constants.GoalLocations.RED_OUTPOST_PASS
+                xdist = abs(self.robot_pose_supplier().X() - Constants.GoalLocations.BLUE_OUTPOST_PASS.X()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().X() - Constants.GoalLocations.RED_OUTPOST_PASS.X())
+                ydist = abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.BLUE_OUTPOST_PASS.Y()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.RED_OUTPOST_PASS.Y())
             case self.SubsystemState.DEPOT:
-                return Constants.GoalLocations.BLUE_DEPOT_PASS if is_blue else Constants.GoalLocations.RED_DEPOT_PASS
-            case _:
-                return Constants.GoalLocations.BLUE_HUB  # fallback, caller should not use for MANUAL
+                xdist = abs(self.robot_pose_supplier().X() - Constants.GoalLocations.BLUE_DEPOT_PASS.X()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().X() - Constants.GoalLocations.RED_DEPOT_PASS.X())
+                ydist = abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.BLUE_DEPOT_PASS.Y()) if DriverStation.getAlliance == DriverStation.Alliance.kBlue else abs(self.robot_pose_supplier().Y() - Constants.GoalLocations.RED_DEPOT_PASS.Y())
+            case self.SubsystemState.MANUAL:
+                return 0.0
+        print(f"Turret: X distance: {xdist}, Y distance: {ydist}")
+        if xdist == 0.0:
+            return 0.0
+        return atan(ydist / xdist)
 
     def rotate_to_goal(self, target: SubsystemState):
         """Aim turret at goal. Commands absolute turret angle in robot frame (shortest path)."""
