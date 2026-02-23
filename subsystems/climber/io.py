@@ -11,6 +11,7 @@ from wpilib.simulation import DCMotorSim
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radians_per_second, volts, amperes, celsius, radiansToRotations
 from wpimath.controller import PIDController
+from math import pi
 
 from constants import Constants
 from util import tryUntilOk
@@ -134,9 +135,9 @@ class ClimberIOSim(ClimberIO):
 
         self._closed_loop = False
 
-        self._controller = PIDController(Constants.ClimberConstants.GAINS.k_p,
-                                        Constants.ClimberConstants.GAINS.k_i,
-                                        Constants.ClimberConstants.GAINS.k_d)
+        self._controller = PIDController(Constants.ClimberConstants.GAINS.k_p / (2*pi),
+                                        Constants.ClimberConstants.GAINS.k_i / (2*pi),
+                                        Constants.ClimberConstants.GAINS.k_d / (2*pi))
 
         self._zero_position = 0.0  # Sim starts at 0
 
@@ -167,4 +168,5 @@ class ClimberIOSim(ClimberIO):
 
     def set_position(self, radians: float) -> None:
         self._closed_loop = True
-        self._controller.setSetpoint(radians)
+        rotations = radiansToRotations(radians) + self._zero_position
+        self._controller.setSetpoint(rotations)

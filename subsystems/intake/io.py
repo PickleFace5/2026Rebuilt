@@ -143,9 +143,9 @@ class IntakeIOSim(IntakeIO):
         self._motorAppliedVolts: float = 0.0
 
         self._controller = PIDController(
-                            Constants.IntakeConstants.GAINS.k_p / 2*pi,
-                            Constants.IntakeConstants.GAINS.k_i / 2*pi,
-                            Constants.IntakeConstants.GAINS.k_d / 2*pi,
+                            Constants.IntakeConstants.GAINS.k_p / (2*pi),
+                            Constants.IntakeConstants.GAINS.k_i / (2*pi),
+                            Constants.IntakeConstants.GAINS.k_d / (2*pi),
                             0.02)
 
     def updateInputs(self, inputs: IntakeIO.IntakeIOInputs) -> None:

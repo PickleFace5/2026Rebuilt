@@ -41,6 +41,7 @@ class RobotContainer:
         print(f"Initializing RobotContainer for: {currentRobot.name}")
         self._max_speed = TunerConstants.speed_at_12_volts
         self._max_angular_rate = rotationsToRadians(1)
+
         if currentRobot == Robot.LARRY:
             self._max_speed = LarryTunerConstants.speed_at_12_volts
 
@@ -59,6 +60,8 @@ class RobotContainer:
         self.feeder: Optional[FeederSubsystem] = None
         self.launcher: Optional[LauncherSubsystem] = None
         self.turret: Optional[TurretSubsystem] = None
+        self.hood: Optional[HoodSubsystem] = None
+
         match Constants.currentMode:
             case Constants.Mode.REAL:
                 # Real robot, instantiate hardware IO implementations
@@ -74,7 +77,7 @@ class RobotContainer:
                         VisionIOLimelight(
                             Constants.VisionConstants.FRONT,
                             Constants.VisionConstants.robot_to_front,
-                            self.drivetrain.get_state().pose.rotation
+                            lambda: self.drivetrain.get_state().pose.rotation(),
                         ),
                     )
 
@@ -145,7 +148,7 @@ class RobotContainer:
                     VisionIOLimelight(
                         Constants.VisionConstants.FRONT,
                         Constants.VisionConstants.robot_to_front,
-                        self.drivetrain.get_state().pose.rotation
+                        lambda: self.drivetrain.get_state().pose.rotation(),
                     ),
                 )
 
@@ -194,7 +197,7 @@ class RobotContainer:
                 
 
         self.superstructure = Superstructure(
-            self.drivetrain, self.climber, self.intake
+            self.intake, self.feeder, self.launcher, self.hood
         )
 
         self._setup_swerve_requests()
@@ -211,9 +214,13 @@ class RobotContainer:
     def _pathplanner_setup(self):
         # Register NamedCommands
         NamedCommands.registerCommand("Default", self.superstructure.set_goal_command(Superstructure.Goal.DEFAULT))
-        NamedCommands.registerCommand("Score in Hub", self.superstructure.set_goal_command(Superstructure.Goal.SCORE))
-        NamedCommands.registerCommand("Climb Ready", self.superstructure.set_goal_command(Superstructure.Goal.CLIMBREADY))
-        NamedCommands.registerCommand("Climb", self.superstructure.set_goal_command(Superstructure.Goal.CLIMB))
+        NamedCommands.registerCommand("Launch", self.superstructure.set_goal_command(Superstructure.Goal.LAUNCH))
+        NamedCommands.registerCommand("Aim to Depot", self.superstructure.set_goal_command(Superstructure.Goal.AIMDEPOT))
+        NamedCommands.registerCommand("Aim to Outpost", self.superstructure.set_goal_command(Superstructure.Goal.AIMOUTPOST))
+        NamedCommands.registerCommand("Aim to Hub", self.superstructure.set_goal_command(Superstructure.Goal.AIMHUB))
+
+        #NamedCommands.registerCommand("Climber Extend", self.climber.set_desired_state(self.climber.SubsystemState.EXTEND))
+        #NamedCommands.registerCommand("Climber Stow", self.climber.set_desired_state(self.climber.SubsystemState.STOW))
 
         # Build AutoChooser
         self._auto_chooser: LoggedDashboardChooser[commands2.Command] = LoggedDashboardChooser("Auto")
@@ -285,6 +292,11 @@ class RobotContainer:
                 InstantCommand(lambda: self.intake.set_desired_state(self.intake.SubsystemState.INTAKE))).onFalse(
                     InstantCommand(lambda: self.intake.set_desired_state(self.intake.SubsystemState.STOP)))
 
+            Trigger(lambda: self._driver_controller.getRightTriggerAxis() > 0.75).whileTrue(
+                InstantCommand(lambda: self.intake.set_desired_state(self.intake.SubsystemState.OUTPUT))
+            ).onFalse(
+                InstantCommand(lambda: self.intake.set_desired_state(self.intake.SubsystemState.STOP))
+            )
         else:
             print("Intake subsystem not available on this robot, unable to bind intake buttons")
 
@@ -327,6 +339,10 @@ class RobotContainer:
                 )
             )
 
+            self._function_controller.a().onTrue(
+                self.superstructure.set_goal_command(Superstructure.Goal.DEFAULT)
+            ).onFalse(self.superstructure.set_goal_command(Superstructure.Goal.DEFAULT))
+
             Trigger(lambda: self._function_controller.getLeftTriggerAxis() > 0.75).onTrue(
                 InstantCommand(lambda: self.turret.set_desired_state(self.turret.SubsystemState.MANUAL)).alongWith(
                     InstantCommand(lambda: self.hood.set_desired_state(self.hood.SubsystemState.MANUAL))
@@ -341,9 +357,7 @@ class RobotContainer:
             Trigger(lambda: self._function_controller.getLeftTriggerAxis() > 0.75).whileTrue(
                 InstantCommand(lambda: self.hood.rotate_manually(self._function_controller.getRightY()))
             )
-            self._function_controller.povUp().onTrue(
-                InstantCommand(lambda: self.hood.set_desired_state(self.hood.SubsystemState.AIMBOT))
-            )
+           
             #self._function_controller.getLeftTriggerAxis().onTrue(
         else:
             print("Turret or hood subsystem not available on this robot, unable to bind turret buttons")
@@ -351,6 +365,9 @@ class RobotContainer:
         if self.hood is not None:
             self._function_controller.povDown().onTrue(
                 InstantCommand(lambda: self.hood.set_desired_state(self.hood.SubsystemState.STOW))
+            )
+            self._function_controller.povUp().onTrue(
+                InstantCommand(lambda: self.hood.set_desired_state(self.hood.SubsystemState.AIMBOT))
             )
         else:
             print("Hood subsystem not available on this robot, unable to bind hood buttons")

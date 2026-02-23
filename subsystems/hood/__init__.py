@@ -35,7 +35,6 @@ class HoodSubsystem(StateSubsystem):
         SubsystemState.STOW: (False, Constants.HoodConstants.STOW),
         SubsystemState.PASS: (False, Constants.HoodConstants.PASSING),
         SubsystemState.MANUAL: (False, 0.0)
-
     }
 
     def __init__(self, io: HoodIO, robot_pose_supplier: Callable[[], Pose2d]) -> None:
@@ -51,57 +50,43 @@ class HoodSubsystem(StateSubsystem):
         self.hood_disconnected_alert = Alert("Hood motor is disconnected.", Alert.AlertType.kError)
 
         #self.hub_pose = Constants.FieldConstants.HUB_POSE  # blue hub
-        self.launch_speed =  12.26  # meters per second, will be passed in from shooter later
-        self.distance = 1.0000000
-        self.angle = 1.0000000
+        self.distance = 1.0
+        self.target = 1.0
 
-    def update_angle(self) -> None:
+    def interpolate(self) -> None:
         """Updates hood angle."""
-        self.angle = degrees(atan(  # calculates angle
-            (self.launch_speed ** 2 +
-             sqrt(
-                 abs(self.launch_speed ** 4 -
-                 9.80665 *
-                 (9.80665 * self.distance ** 2 +
-                  3 * Constants.FieldConstants.HUB_HEIGHT * self.launch_speed ** 2))))
-            / (9.80665 * self.distance)))
-
+        if self.distance <= Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
+            self.target = 0.0000840628 * (self.distance ** 6.40933) 
+        else:
+            self.target = 0.0000139591 * (self.distance ** 5.1281) 
 
     def periodic(self) -> None:
         """Runs stuff periodically (every 20 ms)."""
         self.alliance = DriverStation.getAlliance()
         self.hub_pose = Constants.FieldConstants.HUB_POSE if not (
-            AutoBuilder.shouldFlip()) else FlippingUtil.flipFieldPose(
-            Constants.FieldConstants.HUB_POSE)
+            AutoBuilder.shouldFlip()) else FlippingUtil.flipFieldPose(Constants.FieldConstants.HUB_POSE)
+        
         self.io.update_inputs(self.inputs)
-        Logger.processInputs("Hood", self.inputs)
-        #Logger.recordOutput("Hood/Calculated Angle", self.angle)
-        #Logger.recordOutput("Hood/Distance", self.distance)
 
-        auto_aim, hood_pos = self._state_configs.get(self.get_current_state(), 0.0)
-        if auto_aim:
+        if self._auto_aim:
             self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
-            self.update_angle()
-            print(f"Distance: {self.distance}, Angle: {self.angle}")
-            self.io.set_position(degreesToRotations(self.angle))
-        else:
-            self.io.set_position(hood_pos)
+            self.interpolate()
+            self.io.set_position(self.target)
+
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
+
+        Logger.processInputs("Hood", self.inputs)
+        Logger.recordOutput("Hood/Distance", self.distance)
+        Logger.recordOutput("Hood/Target", self.target)
 
     def set_desired_state(self, desired_state: SubsystemState) -> None:
         """set state"""
         if not super().set_desired_state(desired_state):
             return
 
-        auto_aim, hood_pos = self._state_configs.get(desired_state, 0.0)
-
-        if auto_aim:
-            self.distance = (self.robot_pose_supplier()
-                         .translation().distance(self.hub_pose.translation()))
-            self.update_angle()
-            hood_pos = degreesToRotations(self.angle)
+        self._auto_aim, hood_pos = self._state_configs.get(desired_state, 0.0)
         self.io.set_position(hood_pos)
 
     def get_current_state(self) -> SubsystemState | None:
@@ -115,15 +100,3 @@ class HoodSubsystem(StateSubsystem):
         self.set_desired_state(self.SubsystemState.MANUAL)
         target_velocity = axis * Constants.HoodConstants.MAX_MANUAL_VELOCITY
         self.io.set_velocity(target_velocity)
-
-    def decrease_angle(self):
-        self.set_desired_state(self.SubsystemState.MANUAL)
-        print("decreasing angle")
-        self.io.target_position -= 0.01
-        self.io.set_position(-0.01)
-
-    def increase_angle(self):
-        self.set_desired_state(self.SubsystemState.MANUAL)
-        print("increasing angle")
-        self.io.target_position += 0.01
-        self.io.set_position(.01)

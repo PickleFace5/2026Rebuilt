@@ -117,7 +117,6 @@ class LauncherIOTalonFX(LauncherIO):
 
     def setMotorRPS(self, rps: float) -> None:
         """Set the motor output velocity."""
-        print(f"Launcher setting motor RPS to {rps}")
         if rps == 0:
             self._voltageRequest = VoltageOut(0)
             self._main_motor.set_control(self._voltageRequest)
@@ -148,9 +147,9 @@ class LauncherIOSim(LauncherIO):
         self._motorAppliedVolts: float = 0.0
 
         self._controller = PIDController(
-                            LauncherConstants.GAINS.k_p / 2*pi,
-                            LauncherConstants.GAINS.k_i / 2*pi,
-                            LauncherConstants.GAINS.k_d / 2*pi,
+                            LauncherConstants.GAINS.k_p / (2*pi),
+                            LauncherConstants.GAINS.k_i / (2*pi),
+                            LauncherConstants.GAINS.k_d / (2*pi),
                             0.02)
                         
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:

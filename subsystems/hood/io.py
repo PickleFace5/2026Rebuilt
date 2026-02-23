@@ -17,6 +17,7 @@ from wpimath.geometry import Rotation2d
 from wpimath.system.plant import DCMotor
 from wpimath.system.plant import LinearSystemId
 from wpimath.units import radians, radiansToRotations, volts, amperes, rotationsToRadians
+from math import pi
 
 from constants import Constants
 from util import tryUntilOk
@@ -38,7 +39,7 @@ class HoodIO(ABC):
         hood_applied_volts: volts = 0.0
         hood_current: amperes = 0.0
         hood_temperature: celsius = 0.0
-        hood_setpoint: radians = 0.0
+        hood_setpoint: float = 0.0
         hood_zero_position: float = 0.0
 
 
@@ -134,7 +135,6 @@ class HoodIOTalonFX(HoodIO):
         elif rotation < self._zero_position:
             rotation = self._zero_position
         
-        print(f"Hood setting position to {rotation}, zero position is {self._zero_position}")
         self.hood_motor.set_control(self.position_request.with_position(rotation))
 
     def set_velocity(self, velocity: float) -> None:
@@ -161,9 +161,9 @@ class HoodIOSim(HoodIO):
         )
 
         self.controller = PIDController(
-            Constants.HoodConstants.GAINS.k_p,
-            Constants.HoodConstants.GAINS.k_i,
-            Constants.HoodConstants.GAINS.k_d
+            Constants.HoodConstants.GAINS.k_p / (2*pi),
+            Constants.HoodConstants.GAINS.k_i / (2*pi),
+            Constants.HoodConstants.GAINS.k_d / (2*pi)
         )
 
         self._zero_position = 0.0  # Sim starts at 0
@@ -191,6 +191,11 @@ class HoodIOSim(HoodIO):
 
     def set_position(self, rotation: float) -> None:
         """Set the position."""
+
+        if rotation > Constants.HoodConstants.MAX_ROTATIONS + self._zero_position:
+            rotation = Constants.HoodConstants.MAX_ROTATIONS + self._zero_position
+        elif rotation < self._zero_position:
+            rotation = self._zero_position
 
         self.closed_loop = True
         self.controller.setSetpoint(rotationsToRadians(rotation))

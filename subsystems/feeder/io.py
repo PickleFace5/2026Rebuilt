@@ -147,9 +147,9 @@ class FeederIOSim(FeederIO):
         self._motorAppliedVolts: float = 0.0
 
         self._controller = PIDController(
-                            Constants.FeederConstants.GAINS.k_p / 2*pi,
-                            Constants.FeederConstants.GAINS.k_i / 2*pi,
-                            Constants.FeederConstants.GAINS.k_d / 2*pi,
+                            Constants.FeederConstants.GAINS.k_p / (2*pi),
+                            Constants.FeederConstants.GAINS.k_i / (2*pi),
+                            Constants.FeederConstants.GAINS.k_d / (2*pi),
                             0.02)
 
     def updateInputs(self, inputs: FeederIO.FeederIOInputs) -> None:

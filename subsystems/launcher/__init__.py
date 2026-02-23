@@ -1,5 +1,6 @@
 from enum import auto, Enum
 
+from pathplannerlib.auto import FlippingUtil, AutoBuilder
 from pykit.autolog import autologgable_output
 from pykit.logger import Logger
 from wpilib import Alert
@@ -44,7 +45,7 @@ class LauncherSubsystem(StateSubsystem):
         # Meters per second
         SubsystemState.IDLE: 0, #velocityToWheelRPS(5.0),
         SubsystemState.SCORE: 30,#velocityToWheelRPS(12.26),
-        SubsystemState.PASS: velocityToWheelRPS(10.0),
+        SubsystemState.PASS: 50 #velocityToWheelRPS(10.0),
     }
 
     def __init__(self, io: LauncherIO, robot_pose_supplier: Callable[[], Pose2d]) -> None:
@@ -55,6 +56,7 @@ class LauncherSubsystem(StateSubsystem):
         self._robot_pose_supplier = robot_pose_supplier
         self._desired_projectile_velocity = 0.0
         self._desired_motorRPS = 0.0
+        self.distance = 1.0
         
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
@@ -75,13 +77,33 @@ class LauncherSubsystem(StateSubsystem):
         """Called periodically to update inputs and log data."""
         # Update inputs from hardware/simulation
         self._io.updateInputs(self._inputs)
-        
+
+        # When in SCORE, adjust velocity by distance to hub (same as hood)
+        if self.get_current_state() == self.SubsystemState.SCORE:
+            hub_pose = (
+                Constants.FieldConstants.HUB_POSE
+                if not AutoBuilder.shouldFlip()
+                else FlippingUtil.flipFieldPose(Constants.FieldConstants.HUB_POSE)
+            )
+            self.distance = (
+                self._robot_pose_supplier()
+                .translation()
+                .distance(hub_pose.translation())
+            )
+            base_velocity = self._state_configs[self.SubsystemState.SCORE]
+            if self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
+                self._desired_motorRPS = base_velocity + 10.0
+            else:
+                self._desired_motorRPS = base_velocity
+            self._io.setMotorRPS(self._desired_motorRPS)
+
         # Log inputs to PyKit
         Logger.processInputs("Launcher", self._inputs)
 
         # Log outputs to PyKit
         Logger.recordOutput("Launcher/Target Projectile Velocity", self._desired_projectile_velocity)
         Logger.recordOutput("Launcher/Target Motor RPS", self._desired_motorRPS)
+        Logger.recordOutput("Launcher/DistanceToHub", self.distance)
 
         # Update alerts
         self._motorDisconnectedAlert.set(not self._inputs.motorConnected)
@@ -93,14 +115,29 @@ class LauncherSubsystem(StateSubsystem):
         projectile_velocity = self._state_configs.get(
             desired_state, 
             0.0
-        )
-        #hard coded normal velo
-        #self._desired_projectile_velocity = projectile_velocity
-        # #self._desired_motorRPS = velocityToWheelRPS(projectile_velocity)
-        # self._desired_motorRPS = max(min(self._desired_motorRPS, 75.0), -75)  # Ensure non-negative RPS
-        
+        )#self.get_aim_velocity(desired_state)
+
         self._desired_motorRPS = projectile_velocity
         self._io.setMotorRPS(self._desired_motorRPS)
+
+    """def get_aim_velocity(self, state: SubsystemState) -> float:
+        if state == self.SubsystemState.SCORE:
+            self.distance = (self.robot_pose_supplier()
+                         .translation().distance(self.hub_pose.translation()))
+            velocity = self._state_configs.get(
+                state, 
+                0.0
+            )
+            if self.distance <= 3.25:
+                return velocity
+            else:
+                return velocity + 20.0
+            
+        else:
+            return self._state_configs.get(
+                state, 
+                0.0
+            )"""
 
     def find_position(self) -> float:
         return self._robot_pose_supplier().X
