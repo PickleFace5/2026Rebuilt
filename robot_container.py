@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional
+from typing import Optional
 
 import commands2
 import commands2.button
@@ -9,7 +9,7 @@ from pathplannerlib.auto import NamedCommands, AutoBuilder, PathPlannerAuto
 from pathplannerlib.util import FlippingUtil
 from phoenix6 import swerve
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.configs.config_groups import NeutralModeValue, MotorOutputConfigs, FeedbackConfigs, InvertedValue
+from phoenix6.configs.config_groups import NeutralModeValue, MotorOutputConfigs, FeedbackConfigs
 from pykit.networktables.loggeddashboardchooser import LoggedDashboardChooser
 from wpilib import Field2d, SmartDashboard, XboxController, getDeployDirectory, RobotBase
 from wpimath.geometry import Rotation2d
@@ -17,25 +17,24 @@ from wpimath.kinematics import ChassisSpeeds
 from wpimath.units import rotationsToRadians, inchesToMeters
 
 from constants import Constants
-from util import make_turret_pose_supplier
 from generated.larry.tuner_constants import TunerConstants as LarryTunerConstants
 from generated.tuner_constants import TunerConstants
 from lib.fuel_sim import FuelSim
 from robot_config import currentRobot, has_subsystem, Robot  # Robot detection (Larry vs Comp)
 from subsystems.climber import ClimberSubsystem
 from subsystems.climber.io import ClimberIOTalonFX, ClimberIOSim
-from subsystems.intake import IntakeSubsystem, IntakeIO, IntakeIOSim, IntakeIOTalonFX
-from subsystems.superstructure import Superstructure
-from subsystems.swerve import SwerveSubsystem
-from subsystems.vision import VisionSubsystem
 from subsystems.feeder import FeederIOSim, FeederIOTalonFX, FeederSubsystem
-from subsystems.launcher import LauncherIOSim, LauncherIOTalonFX, LauncherSubsystem
 from subsystems.hood import HoodSubsystem
 from subsystems.hood.io import HoodIOSim, HoodIOTalonFX
+from subsystems.intake import IntakeSubsystem, IntakeIOSim, IntakeIOTalonFX
+from subsystems.launcher import LauncherIOSim, LauncherIOTalonFX, LauncherSubsystem
+from subsystems.superstructure import Superstructure
+from subsystems.swerve import SwerveSubsystem
 from subsystems.turret import TurretSubsystem
 from subsystems.turret.io import TurretIOTalonFX, TurretIOSim
-
+from subsystems.vision import VisionSubsystem
 from subsystems.vision.io import VisionIOLimelight
+from util import make_turret_pose_supplier
 
 
 class RobotContainer:
