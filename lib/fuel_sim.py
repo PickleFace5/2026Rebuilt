@@ -326,19 +326,20 @@ def _xz_line_collide_np(
         return
 
     t = ((px - sx) * lvx + (pz - sz) * lvz) / norm_sq
+    if t < 0.0 or t > 1.0:
+        return
+
     proj_x = sx + t * lvx
     proj_z = sz + t * lvz
 
+    ddx = px - proj_x
+    ddz = pz - proj_z
+    dist_sq = ddx * ddx + ddz * ddz
+    if dist_sq > _FUEL_RADIUS * _FUEL_RADIUS:
+        return
+
+    dist = math.sqrt(dist_sq) if dist_sq > 1e-12 else 1e-6
     seg_len = math.sqrt(norm_sq)
-    d_from_start = math.sqrt((proj_x - sx) ** 2 + (proj_z - sz) ** 2)
-    d_from_end = math.sqrt((proj_x - ex) ** 2 + (proj_z - ez) ** 2)
-    if d_from_start + d_from_end > seg_len + 1e-9:
-        return
-
-    dist = math.sqrt((px - proj_x) ** 2 + (pz - proj_z) ** 2)
-    if dist > _FUEL_RADIUS:
-        return
-
     nx = -lvz / seg_len
     nz = lvx / seg_len
 
@@ -430,7 +431,8 @@ class FuelSim:
         "running", "simulate_air_resistance", "subticks", "intakes",
         "_table_key", "robot_pose_supplier", "robot_speeds_supplier",
         "robot_width", "robot_length", "bumper_height", "_robot_length_sq",
-        "_grid", "_pair_checked",
+        "_broad_r_sq", "_grid", "_grid_pool", "_grid_active_keys",
+        "_pair_checked", "_checked_pairs",
     )
 
     _SLEEP_THRESHOLD = 10
@@ -439,7 +441,10 @@ class FuelSim:
     def __init__(self, table_key: str = "Fuel Simulation/") -> None:
         cap = 600
         self._grid: dict[tuple[int, int], list[int]] = {}
+        self._grid_pool: list[list[int]] = []
+        self._grid_active_keys: list[tuple[int, int]] = []
         self._pair_checked = np.zeros((cap, cap), dtype=bool)
+        self._checked_pairs: list[tuple[int, int]] = []
         self._pos = np.zeros((cap, 3), dtype=np.float64)
         self._vel = np.zeros((cap, 3), dtype=np.float64)
         self._alive = np.zeros(cap, dtype=bool)
@@ -458,6 +463,7 @@ class FuelSim:
             Callable[[], ChassisSpeeds]] = None
         self.robot_width: float = 0.0
         self.robot_length: float = 0.0
+        self._robot_length_sq: float = 0.0
         self.bumper_height: float = 0.0
 
     def _ensure_capacity(self, extra: int) -> None:
@@ -578,6 +584,7 @@ class FuelSim:
         self.robot_speeds_supplier = field_speeds_supplier
         self.robot_width = width
         self.robot_length = length
+        self._robot_length_sq = length * length
         self.bumper_height = bumper_height
 
     def register_intake(
@@ -614,14 +621,14 @@ class FuelSim:
             self.step_sim()
 
     def step_sim(self) -> None:
-        """Steps the simulation forward 1 loop."""
         for _ in range(self.subticks):
             idx = self._active
             self._physics_step(idx)
             self._collision_step(idx)
-            if self.robot_pose_supplier is not None:
+            if self.robot_pose_supplier:
                 self._handle_robot_collisions(idx)
-                self._handle_intakes()
+        if self.robot_pose_supplier:
+            self._handle_intakes()
         self._log()
 
     def launch_fuel(
@@ -745,6 +752,9 @@ class FuelSim:
     ) -> None:
         """Scoring, side, and net collisions for a single fuel against a
         hub."""
+        pz = pos[i, 2]
+        if pz > hub.ENTRY_HEIGHT + _FUEL_RADIUS:  # above hub entirely
+            return
         dx = pos[i, 0] - hub.cx
         dy = pos[i, 1] - hub.cy
         if dx * dx + dy * dy > _HUB_CLOSE_SQ:
@@ -757,13 +767,22 @@ class FuelSim:
         hub.collide_side(pos, vel, i)
         hub.collide_net(pos, vel, i)
 
-    def _collide_fuel_fuel(self, idx) -> None:
+    def _collide_fuel_fuel(self, idx: np.ndarray) -> None:
         if len(idx) == 0:
             return
 
         grid = self._grid
-        grid.clear()
+        pool = self._grid_pool
+        active_keys = self._grid_active_keys
         pos = self._pos
+
+        # Return all used lists to the pool and clear tracking
+        for key in active_keys:
+            lst = grid[key]
+            lst.clear()
+            pool.append(lst)
+        active_keys.clear()
+        grid.clear()
 
         for i in idx:
             col = int(pos[i, 0] / _CELL_SIZE)
@@ -773,10 +792,17 @@ class FuelSim:
                 if key in grid:
                     grid[key].append(i)
                 else:
-                    grid[key] = [i]
+                    lst = pool.pop() if pool else []
+                    lst.append(i)
+                    grid[key] = lst
+                    active_keys.append(key)
 
-        n = self._n
-        self._pair_checked[:n, :n] = False
+        # Clear only touched pairs instead of the full n×n slice
+        checked_pairs = self._checked_pairs
+        pair_checked = self._pair_checked
+        for a, b in checked_pairs:
+            pair_checked[a, b] = False
+        checked_pairs.clear()
 
         awake = idx[self._sleep[idx] < self._SLEEP_THRESHOLD]
         for i in awake:
@@ -788,9 +814,10 @@ class FuelSim:
                         if i == j:
                             continue
                         a, b = (i, j) if i < j else (j, i)
-                        if self._pair_checked[a, b]:
+                        if pair_checked[a, b]:
                             continue
-                        self._pair_checked[a, b] = True
+                        pair_checked[a, b] = True
+                        checked_pairs.append((a, b))
                         dx = pos[i, 0] - pos[j, 0]
                         dy = pos[i, 1] - pos[j, 1]
                         dz = pos[i, 2] - pos[j, 2]
@@ -829,9 +856,8 @@ class FuelSim:
         self._sleep[a] = 0
         self._sleep[b] = 0
 
-    def _handle_robot_collisions(self, idx) -> None:
-        if (self.robot_pose_supplier is None or
-                self.robot_speeds_supplier is None):
+    def _handle_robot_collisions(self, idx: np.ndarray) -> None:
+        if self.robot_pose_supplier is None or self.robot_speeds_supplier is None:
             return
         robot = self.robot_pose_supplier()
         speeds = self.robot_speeds_supplier()
@@ -841,21 +867,29 @@ class FuelSim:
         bh = self.bumper_height
         pos, vel = self._pos, self._vel
 
-        rx_orig = robot.translation().x
-        ry_orig = robot.translation().y
-        cos_r = math.cos(-robot.rotation().radians())
-        sin_r = math.sin(-robot.rotation().radians())
+        rtx = robot.translation().x
+        rty = robot.translation().y
+        angle = robot.rotation().radians()
+        cos_r = math.cos(angle)  # forward rotation
+        sin_r = math.sin(angle)
+
+        # cull anything outside a circle that fully contains the robot
+        broad_r_sq = (half_l + half_w + _FUEL_RADIUS) ** 2
         for i in idx:
-            px, py, pz = pos[i, 0], pos[i, 1], pos[i, 2]
-            dx = px - robot.translation().x
-            dy = py - robot.translation().y
-            if dx * dx + dy * dy > self.robot_length ** 2 or pz > bh:
+            pz = pos[i, 2]
+            if pz > bh:
                 continue
 
-            ddx = px - rx_orig
-            ddy = py - ry_orig
-            rx = cos_r * ddx - sin_r * ddy
-            ry = sin_r * ddx + cos_r * ddy
+            ddx = pos[i, 0] - rtx
+            ddy = pos[i, 1] - rty
+
+            # Broad phase circle check — cheap, culls most balls
+            if ddx * ddx + ddy * ddy > broad_r_sq:
+                continue
+
+            # Transform to robot frame using transpose of rotation matrix
+            rx = cos_r * ddx + sin_r * ddy
+            ry = -sin_r * ddx + cos_r * ddy
 
             d_bot = -_FUEL_RADIUS - half_l - rx
             d_top = -_FUEL_RADIUS - half_l + rx
@@ -865,24 +899,34 @@ class FuelSim:
             if d_bot > 0 or d_top > 0 or d_right > 0 or d_left > 0:
                 continue
 
+            # Minimum penetration axis in robot frame
             if d_bot >= d_top and d_bot >= d_right and d_bot >= d_left:
-                off = Translation2d(d_bot, 0).rotateBy(robot.rotation())
+                ox, oy = d_bot, 0.0
             elif d_top >= d_bot and d_top >= d_right and d_top >= d_left:
-                off = Translation2d(-d_top, 0).rotateBy(robot.rotation())
+                ox, oy = -d_top, 0.0
             elif d_right >= d_bot and d_right >= d_top and d_right >= d_left:
-                off = Translation2d(0, d_right).rotateBy(robot.rotation())
+                ox, oy = 0.0, d_right
             else:
-                off = Translation2d(0, -d_left).rotateBy(robot.rotation())
+                ox, oy = 0.0, -d_left
 
-            pos[i, 0] += off.x
-            pos[i, 1] += off.y
-            n = off / off.norm() if off.norm() > 1e-12 else Translation2d(1, 0)
-            nx_f, ny_f = n.x, n.y
+            # Rotate offset back to field frame
+            off_x = cos_r * ox - sin_r * oy
+            off_y = sin_r * ox + cos_r * oy
+
+            pos[i, 0] += off_x
+            pos[i, 1] += off_y
+
+            norm = math.sqrt(off_x * off_x + off_y * off_y)
+            if norm > 1e-12:
+                nx_f = off_x / norm
+                ny_f = off_y / norm
+            else:
+                nx_f, ny_f = 1.0, 0.0
 
             vdotn = vel[i, 0] * nx_f + vel[i, 1] * ny_f
             if vdotn < 0:
-                vel[i, 0] += -vdotn * _ROBOT_COR1 * nx_f
-                vel[i, 1] += -vdotn * _ROBOT_COR1 * ny_f
+                vel[i, 0] -= vdotn * _ROBOT_COR1 * nx_f
+                vel[i, 1] -= vdotn * _ROBOT_COR1 * ny_f
             rdotn = rvx * nx_f + rvy * ny_f
             if rdotn > 0:
                 vel[i, 0] += rdotn * nx_f
@@ -896,28 +940,40 @@ class FuelSim:
         robot = self.robot_pose_supplier()
         bh = self.bumper_height
         pos = self._pos
+
+        rtx = robot.translation().x
+        rty = robot.translation().y
+        angle = robot.rotation().radians()
+        cos_r = math.cos(angle)
+        sin_r = math.sin(angle)
+
         removed = False
         for intake in self.intakes:
+            # Hoisted outside inner loop — was previously called once per ball
+            if not intake.able_to_intake():
+                continue
+            x_min, x_max = intake.x_min, intake.x_max
+            y_min, y_max = intake.y_min, intake.y_max
+            callback = intake.callback
             for i in range(self._n - 1, -1, -1):
-                if not self._alive[i]:
+                if not self._alive[i] or pos[i, 2] > bh:
                     continue
-                if intake.should_intake(
-                        pos[i, 0], pos[i, 1], pos[i, 2],
-                        robot, bh
-                ):
+                ddx = pos[i, 0] - rtx
+                ddy = pos[i, 1] - rty
+                rx = cos_r * ddx + sin_r * ddy
+                ry = -sin_r * ddx + cos_r * ddy
+                if x_min <= rx <= x_max and y_min <= ry <= y_max:
+                    callback()
                     self._alive[i] = False
                     removed = True
         if removed:
             self._compact()
 
     def _log(self) -> None:
+        idx = self._active
         Logger.recordOutput(
             f"{self._table_key}/Fuel",
-            [Translation3d(
-                self._pos[i, 0],
-                self._pos[i, 1],
-                self._pos[i, 2]
-            ) for i in self._active],
+            [Translation3d(self._pos[i, 0], self._pos[i, 1], self._pos[i, 2]) for i in idx],
         )
         Logger.recordOutput(f"{self._table_key}/RedScore", RED_HUB.score)
         Logger.recordOutput(f"{self._table_key}/BlueScore", BLUE_HUB.score)
