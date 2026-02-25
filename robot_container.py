@@ -16,6 +16,7 @@ from wpimath.geometry import Rotation2d
 from wpimath.units import rotationsToRadians
 
 from constants import Constants
+from util import make_turret_pose_supplier
 from generated.larry.tuner_constants import TunerConstants as LarryTunerConstants
 from generated.tuner_constants import TunerConstants
 from robot_config import currentRobot, has_subsystem, Robot  # Robot detection (Larry vs Comp)
@@ -81,6 +82,8 @@ class RobotContainer:
                         ),
                     )
 
+                # Hood, launcher, turret use turret position (robot center + offset) for distance/aim
+                #turret_pose = make_turret_pose_supplier(lambda: self.drivetrain.get_state().pose)
                 if has_subsystem("turret"):
                     turret_io = TurretIOTalonFX()
                     self.turret = TurretSubsystem(turret_io, lambda: self.drivetrain.get_state().pose)
@@ -134,9 +137,8 @@ class RobotContainer:
 
                 if has_subsystem("hood"):
                     hood_io = HoodIOTalonFX()
-
                     self.hood = HoodSubsystem(hood_io, lambda: self.drivetrain.get_state().pose)
-                    print("we hood") # hood is present
+                    print("we hood")  # hood is present
                 else:
                     print("straight out the suburbs") # hood is not present
 
@@ -152,11 +154,10 @@ class RobotContainer:
                     ),
                 )
 
-                #hood
-                robot_pose_supplier = lambda: self.drivetrain.get_state().pose
-                self.hood = HoodSubsystem(HoodIOSim(), robot_pose_supplier)
-
-                self.turret = TurretSubsystem(TurretIOSim(), lambda: self.drivetrain.get_state().pose)
+                # hood, turret, launcher use turret position (robot center + offset) for distance/aim
+                turret_pose_sim = make_turret_pose_supplier(lambda: self.drivetrain.get_state().pose)
+                self.hood = HoodSubsystem(HoodIOSim(), turret_pose_sim)
+                self.turret = TurretSubsystem(TurretIOSim(), turret_pose_sim)
 
                 self.climber = ClimberSubsystem(ClimberIOSim())
                 print("Climber, Present")
@@ -168,7 +169,7 @@ class RobotContainer:
                     print("Feeder subsystem not available on this robot")
 
                 if has_subsystem("launcher"):
-                    self.launcher = LauncherSubsystem(LauncherIOSim(), lambda: self.drivetrain.get_state().pose)
+                    self.launcher = LauncherSubsystem(LauncherIOSim(), turret_pose_sim)
                     print("Launcher, Present")
                 else:
                     print("Launcher subsystem not available on this robot")
@@ -181,16 +182,15 @@ class RobotContainer:
 
                 if has_subsystem("turret"):
                     turret_io = TurretIOSim()
-                    self.turret = TurretSubsystem(turret_io, lambda: self.drivetrain.get_state().pose)
+                    self.turret = TurretSubsystem(turret_io, turret_pose_sim)
                     print("Turret, present")
                 else:
                     print("Turret subsystem not available on this robot")
 
                 if has_subsystem("hood"):
                     hood_io = HoodIOSim()
-
-                    self.hood = HoodSubsystem(hood_io, lambda: self.drivetrain.get_state().pose)
-                    print("we hood") # hood is present
+                    self.hood = HoodSubsystem(hood_io, turret_pose_sim)
+                    print("we hood")  # hood is present
                 else:
                     print("straight out the suburbs") # hood is not present
 
