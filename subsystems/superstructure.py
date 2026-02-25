@@ -138,11 +138,11 @@ class Superstructure(Subsystem):
                     self.feeder.set_desired_state(FeederSubsystem.SubsystemState.INWARD)
 
             case self.Goal.LAUNCH: 
-                _turret_check = abs(self.turret.inputs.turret_setpoint - self.turret.inputs.turret_position) < Constants.TurretConstants.SETPOINT_TOLERANCE
-                _hood_check = abs(self.hood.inputs.hood_setpoint - self.hood.inputs.hood_position) < Constants.HoodConstants.SETPOINT_TOLERANCE
-                _flywheel_check = abs(self.launcher.desired_motorRPS - self.launcher.inputs.motorVelocity) < Constants.LauncherConstants.SETPOINT_TOLERANCE
+                turret_check = abs(self.turret.inputs.turret_setpoint - self.turret.inputs.turret_position) < Constants.TurretConstants.SETPOINT_TOLERANCE
+                hood_check = abs(self.hood.inputs.hood_setpoint - self.hood.inputs.hood_position) < Constants.HoodConstants.SETPOINT_TOLERANCE
+                flywheel_check = abs(self.launcher.desired_motorRPS - self.launcher.inputs.motorVelocity) < Constants.LauncherConstants.SETPOINT_TOLERANCE
 
-                if (_turret_check and _hood_check and _flywheel_check) and self.feeder.is_locked:
+                if (turret_check and hood_check and flywheel_check) and self.feeder.is_locked:
                     self.feeder.unlock()
                     self.feeder.set_desired_state(FeederSubsystem.SubsystemState.INWARD)
 
