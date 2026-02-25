@@ -155,8 +155,8 @@ class Hub:
         """Check if fuel is withing entry bounds."""
         return fuel.pos.toTranslation2d().distance(
             self.center
-        ) <= self.ENTRY_RADIUS and fuel.pos.Z() <= self.ENTRY_HEIGHT < (
-                fuel.pos - (fuel.vel * (PERIOD / subticks))).Z()
+        ) <= self.ENTRY_RADIUS and fuel.pos.z <= self.ENTRY_HEIGHT < (
+                fuel.pos - (fuel.vel * (PERIOD / subticks))).z
 
     def get_dispersal_velocity(self) -> Translation3d:
         """Calculate random release velocity."""
@@ -179,12 +179,12 @@ class Hub:
         """Side rectangles for collision checks."""
         fuel_collide_rectangle(
             fuel, Translation3d(
-                self.center.X() - self.SIDE / 2,
-                self.center.Y() - self.SIDE / 2,
+                self.center.x - self.SIDE / 2,
+                self.center.y - self.SIDE / 2,
                 0
             ), Translation3d(
-                self.center.X() + self.SIDE / 2,
-                self.center.Y() + self.SIDE / 2,
+                self.center.x + self.SIDE / 2,
+                self.center.y + self.SIDE / 2,
                 self.ENTRY_HEIGHT - 0.1
             )
         )
@@ -192,27 +192,26 @@ class Hub:
     def fuel_hit_net(self, fuel: "Fuel") -> float:
         """Checks if the fuel hits the net."""
         if (
-                fuel.pos.Z() > self.NET_HEIGHT_MAX or fuel.pos.Z() <
+                fuel.pos.z > self.NET_HEIGHT_MAX or fuel.pos.z <
                 self.NET_HEIGHT_MIN):
             return 0
         if (
-                fuel.pos.Y() > self.center.Y() + self.NET_WIDTH / 2 or
-                fuel.pos.Y() < self.center.Y() - self.NET_WIDTH / 2):
+                fuel.pos.y > self.center.y + self.NET_WIDTH / 2 or
+                fuel.pos.y < self.center.y - self.NET_WIDTH / 2):
             return 0
         if (
-                fuel.pos.X() > self.center.X() + self.NET_OFFSET *
+                fuel.pos.x > self.center.x + self.NET_OFFSET *
                 self.exit_vel_x_mult):
             return max(
                 0,
-                self.center.X() + self.NET_OFFSET * self.exit_vel_x_mult - (
-                        fuel.pos.X() - FUEL_RADIUS)
+                self.center.x + self.NET_OFFSET * self.exit_vel_x_mult - (
+                        fuel.pos.x - FUEL_RADIUS)
             )
-        else:
-            return min(
-                0,
-                self.center.X() + self.NET_OFFSET * self.exit_vel_x_mult - (
-                        fuel.pos.X() + FUEL_RADIUS)
-            )
+        return min(
+            0,
+            self.center.x + self.NET_OFFSET * self.exit_vel_x_mult - (
+                    fuel.pos.x + FUEL_RADIUS)
+        )
 
 
 BLUE_HUB = Hub(
@@ -235,34 +234,59 @@ class Fuel:
 
     def update(self, simulate_air_resistance: bool, subticks: int) -> None:
         """Update position, air resistance, and collisions."""
-        self.pos += self.vel * (PERIOD / subticks)
-        if self.pos.Z() > FUEL_RADIUS:
-            fg = GRAVITY * FUEL_MASS
-            fd = Translation3d()
+        dt = PERIOD / subticks
+
+        vx, vy, vz = self.vel.x, self.vel.y, self.vel.z
+        px, py, pz = self.pos.x, self.pos.y, self.pos.z
+
+        px += vx * dt
+        py += vy * dt
+        pz += vz * dt
+        if pz > FUEL_RADIUS:
+            fg_z = -9.81 * FUEL_MASS
+            drag_z = 0.0
 
             if simulate_air_resistance:
-                speed = self.vel.norm()
-                if speed > 1e-6:
-                    fd = self.vel * (-DRAG_FORCE_FACTOR * speed)
+                speed2 = vx * vx + vy * vy + vz * vz
+                if speed2 > 1e-12:
+                    speed = speed2 ** 0.5
+                    drag_x = -DRAG_FORCE_FACTOR * speed * vx
+                    drag_y = -DRAG_FORCE_FACTOR * speed * vy
+                    drag_z = -DRAG_FORCE_FACTOR * speed * vz
 
-            accel = (fg + fd) / FUEL_MASS
-            self.vel += accel * (PERIOD / subticks)
-        if abs(self.vel.Z()) < 0.05 and self.pos.Z() <= FUEL_RADIUS + 0.03:
-            self.vel = Translation3d(self.vel.X(), self.vel.Y(), 0)
-            self.vel *= 1 - FRICTION * PERIOD / subticks
-        self.handle_field_collisions(subticks)
+                    ax = drag_x / FUEL_MASS
+                    ay = drag_y / FUEL_MASS
+                    vx += ax * dt
+                    vy += ay * dt
+
+            az = (fg_z + drag_z) / FUEL_MASS
+            vz += az * dt
+
+        # Ground contact + friction
+        if abs(vz) < 0.05 and pz <= FUEL_RADIUS + 0.03:
+            vz = 0.0
+            friction_factor = 1 - FRICTION * dt
+            vx *= friction_factor
+            vy *= friction_factor
+
+        self.pos = Translation3d(px, py, pz)
+        self.vel = Translation3d(vx, vy, vz)
+
+        # Collision handling
+        if vx * vx + vy * vy > 1e-12:
+            self.handle_field_collisions(subticks)
 
     def handle_xz_line_collision(self,
                                  line_start: Translation3d,
                                  line_end: Translation3d
                                  ) -> None:
         """Handle a lotta collisions."""
-        if self.pos.Y() < line_start.Y() or self.pos.Y() > line_end.Y():
+        if self.pos.y < line_start.y or self.pos.y > line_end.y:
             return
         # Convert into 2D
-        start2d = Translation2d(line_start.X(), line_start.Z())
-        end2d = Translation2d(line_end.X(), line_end.Z())
-        pos2d = Translation2d(self.pos.X(), self.pos.Z())
+        start2d = Translation2d(line_start.x, line_start.z)
+        end2d = Translation2d(line_end.x, line_end.z)
+        pos2d = Translation2d(self.pos.x, self.pos.z)
         line_vec = end2d - start2d
 
         # Get the closest point on the line
@@ -279,9 +303,9 @@ class Fuel:
             return  # not intersecting line
         # Back into 3D
         normal = Translation3d(
-            -line_vec.Y(),
+            -line_vec.y,
             0,
-            line_vec.X()
+            line_vec.x
         ) / line_vec.norm()
 
         # Apply collision response
@@ -293,31 +317,35 @@ class Fuel:
     def handle_field_collisions(self, subticks: int) -> None:
         """Self-explanatory."""
         # floor and bumps
+        if self.vel.norm() < 1e-6:
+            return # No checks if we aren't moving
         for _, line in enumerate(FIELD_XZ_LINES):
             self.handle_xz_line_collision(line[0], line[1])
 
         # edges
-        if self.pos.X() < FUEL_RADIUS and self.vel.X() < 0:
-            self.pos += Translation3d(FUEL_RADIUS - self.pos.X(), 0, 0)
-            self.vel += Translation3d(-(1 + FIELD_COR) * self.vel.X(), 0, 0)
-        elif self.pos.X() > FIELD_LENGTH - FUEL_RADIUS and self.vel.X() > 0:
+        if self.pos.x < FUEL_RADIUS and self.vel.x < 0:
+            self.pos += Translation3d(FUEL_RADIUS - self.pos.x, 0, 0)
+            self.vel += Translation3d(-(1 + FIELD_COR) * self.vel.x, 0, 0)
+        elif self.pos.x > FIELD_LENGTH - FUEL_RADIUS and self.vel.x > 0:
             self.pos += Translation3d(
-                FIELD_LENGTH - FUEL_RADIUS - self.pos.X(), 0, 0
+                FIELD_LENGTH - FUEL_RADIUS - self.pos.x, 0, 0
             )
-            self.vel += Translation3d(-(1 + FIELD_COR) * self.vel.X(), 0, 0)
+            self.vel += Translation3d(-(1 + FIELD_COR) * self.vel.x, 0, 0)
 
-        if self.pos.Y() < FUEL_RADIUS and self.vel.Y() < 0:
-            self.pos += Translation3d(0, FUEL_RADIUS - self.pos.Y(), 0)
-            self.vel += Translation3d(0, -(1 + FIELD_COR) * self.vel.Y(), 0)
-        elif self.pos.Y() > FIELD_WIDTH - FUEL_RADIUS and self.vel.Y() > 0:
+        if self.pos.y < FUEL_RADIUS and self.vel.y < 0:
+            self.pos += Translation3d(0, FUEL_RADIUS - self.pos.y, 0)
+            self.vel += Translation3d(0, -(1 + FIELD_COR) * self.vel.y, 0)
+        elif self.pos.y > FIELD_WIDTH - FUEL_RADIUS and self.vel.y > 0:
             self.pos += Translation3d(
-                0, FIELD_WIDTH - FUEL_RADIUS - self.pos.Y(), 0
+                0, FIELD_WIDTH - FUEL_RADIUS - self.pos.y, 0
             )
-            self.vel += Translation3d(0, -(1 + FIELD_COR) * self.vel.Y(), 0)
+            self.vel += Translation3d(0, -(1 + FIELD_COR) * self.vel.y, 0)
 
         # Hubs
-        self.handle_hub_collisions(BLUE_HUB, subticks)
-        self.handle_hub_collisions(RED_HUB, subticks)
+        if self.pos.x < FIELD_LENGTH / 2:
+            self.handle_hub_collisions(BLUE_HUB, subticks)
+        else:
+            self.handle_hub_collisions(RED_HUB, subticks)
 
         self.handle_trench_collisions()
 
@@ -330,7 +358,7 @@ class Fuel:
         if net_collision != 0:
             self.pos += Translation3d(net_collision, 0, 0)
             self.vel = Translation3d(
-                -self.vel.X() * NET_COR, self.vel.Y() * NET_COR, self.vel.Z()
+                -self.vel.x * NET_COR, self.vel.y * NET_COR, self.vel.z
             )
 
     def handle_trench_collisions(self) -> None:
@@ -410,14 +438,14 @@ class Fuel:
 def fuel_collide_rectangle(fuel: Fuel, start: Translation3d, end: Translation3d
                            ) -> None:
     """Simple rectangle collision check."""
-    if (
-            fuel.pos.Z() > end.Z() + FUEL_RADIUS or fuel.pos.Z() < start.Z()
-            - FUEL_RADIUS):
-        return  # above rectangle
-    distance_to_left = start.X() - FUEL_RADIUS - fuel.pos.X()
-    distance_to_right = fuel.pos.X() - end.X() - FUEL_RADIUS
-    distance_to_top = fuel.pos.Y() - end.Y() - FUEL_RADIUS
-    distance_to_bottom = start.Y() - FUEL_RADIUS - fuel.pos.Y()
+    if (fuel.vel.norm() < 1e-6 or
+            fuel.pos.z > end.z + FUEL_RADIUS or
+            fuel.pos.z < start.z - FUEL_RADIUS):
+        return  # above rectangle or not moving
+    distance_to_left = start.x - FUEL_RADIUS - fuel.pos.x
+    distance_to_right = fuel.pos.x - end.x - FUEL_RADIUS
+    distance_to_top = fuel.pos.y - end.y - FUEL_RADIUS
+    distance_to_bottom = start.y - FUEL_RADIUS - fuel.pos.y
 
     # not inside hub
     if (
@@ -427,27 +455,27 @@ def fuel_collide_rectangle(fuel: Fuel, start: Translation3d, end: Translation3d
         return
 
     # Find minimum distance to side and send corresponding collision response
-    if fuel.pos.X() < start.X() or (
+    if fuel.pos.x < start.x or (
             distance_to_left >= distance_to_right and distance_to_left >=
             distance_to_top and distance_to_left >= distance_to_bottom):
         collision = Translation2d(distance_to_left, 0)
-    elif fuel.pos.X() >= end.X() or (
+    elif fuel.pos.x >= end.x or (
             distance_to_right >= distance_to_left and distance_to_right >=
             distance_to_top and distance_to_right >= distance_to_bottom):
         collision = Translation2d(-distance_to_right, 0)
-    elif fuel.pos.Y() > end.Y() or (
+    elif fuel.pos.y > end.y or (
             distance_to_top >= distance_to_left and distance_to_top >=
             distance_to_right and distance_to_top >= distance_to_bottom):
         collision = Translation2d(0, -distance_to_top)
     else:
         collision = Translation2d(0, distance_to_bottom)
 
-    if collision.X() != 0:
+    if collision.x != 0:
         fuel.pos += Translation3d(collision)
-        fuel.vel += Translation3d(-(1 + FIELD_COR) * fuel.vel.X(), 0, 0)
-    elif collision.Y() != 0:
+        fuel.vel += Translation3d(-(1 + FIELD_COR) * fuel.vel.x, 0, 0)
+    elif collision.y != 0:
         fuel.pos += Translation3d(collision)
-        fuel.vel += Translation3d(0, -(1 + FIELD_COR) * fuel.vel.Y(), 0)
+        fuel.vel += Translation3d(0, -(1 + FIELD_COR) * fuel.vel.y, 0)
 
 
 @dataclass
@@ -466,7 +494,7 @@ class SimIntake:
                       bumper_height: meters
                       ) -> bool:
         """Check if we're able to intake the fuel."""
-        if not self.able_to_intake() or fuel.pos.Z() > bumper_height:
+        if not self.able_to_intake() or fuel.pos.z > bumper_height:
             return False
 
         fuel_relative_pos = Pose2d(
@@ -474,8 +502,8 @@ class SimIntake:
         ).relativeTo(robot_pose).translation()
 
         result = (
-                self.x_min <= fuel_relative_pos.X() <= self.x_max and
-                self.y_min <= fuel_relative_pos.Y() <= self.y_max)
+                self.x_min <= fuel_relative_pos.x <= self.x_max and
+                self.y_min <= fuel_relative_pos.y <= self.y_max)
         if result:
             self.callback()
         return result
@@ -542,7 +570,8 @@ class FuelSim:
             for x, y in [(1, 1), (-1, 1), (1, -1), (-1, -1)]
         ]
 
-        # Depots
+    def spawn_depot_fuel(self) -> None:
+        """Adds depot fuel."""
         for i in range(3):
             for j in range(4):
                 self.fuels.append(
@@ -594,7 +623,7 @@ class FuelSim:
                     0
                 )
             )
-            for i in range(2)
+            for i in range(3)
             for j in range(2)
             for x, y in [(1, 1), (-1, 1), (1, -1), (-1, -1)]
         ]
@@ -668,6 +697,7 @@ class FuelSim:
                     turret_yaw: radians,
                     launch_height: meters
                     ) -> None:
+        """Shoots fuel at the desired angles and velocity."""
         if (
                 self.robot_pose_supplier is None or
                 self.robot_speeds_supplier is None):
@@ -683,7 +713,7 @@ class FuelSim:
         horizontal_vel = math.cos(hood_angle) * launch_velocity
         vertical_vel = math.sin(hood_angle) * launch_velocity
 
-        yaw = turret_yaw + launch_pose.rotation().Z()
+        yaw = turret_yaw + launch_pose.rotation().z
         x_vel = horizontal_vel * math.cos(yaw)
         y_vel = horizontal_vel * math.sin(yaw)
         x_vel += field_speeds.vx
@@ -700,20 +730,22 @@ class FuelSim:
                                robot_vel: Translation2d
                                ) -> None:
         """Handle a single robot to fuel collision."""
+        if fuel.pos.toTranslation2d().distance(robot.translation()) > self.robot_length:
+            return
         relative_pos = Pose2d(
             fuel.pos.toTranslation2d(), Rotation2d()
         ).relativeTo(robot).translation()
 
-        if fuel.pos.Z() > self.bumper_height:
+        if fuel.pos.z > self.bumper_height:
             return  # above bumpers
         distance_to_bottom = (
-                -FUEL_RADIUS - self.robot_length / 2 - relative_pos.X())
+                -FUEL_RADIUS - self.robot_length / 2 - relative_pos.x)
         distance_to_top = (-FUEL_RADIUS - self.robot_length / 2 +
-                           relative_pos.X())
+                           relative_pos.x)
         distance_to_right = (-FUEL_RADIUS - self.robot_width / 2 -
-                             relative_pos.Y())
+                             relative_pos.y)
         distance_to_left = (-FUEL_RADIUS - self.robot_width / 2 +
-                            relative_pos.Y())
+                            relative_pos.y)
 
         # not inside robot
         if (
@@ -755,6 +787,8 @@ class FuelSim:
 
     def handle_robot_collisions(self, fuels: list[Fuel]) -> None:
         """Plural."""
+        if self.robot_pose_supplier is None or self.robot_speeds_supplier is None:
+            return
         robot = self.robot_pose_supplier()
         speeds = self.robot_speeds_supplier()
         robot_vel = Translation2d(speeds.vx, speeds.vy)
@@ -764,6 +798,8 @@ class FuelSim:
 
     def handle_intakes(self, fuels: list[Fuel]) -> None:
         """Update intakes."""
+        if not self.robot_pose_supplier:
+            return
         robot = self.robot_pose_supplier()
         for intake in self.intakes:
             for i in reversed(range(len(fuels))):
@@ -777,16 +813,16 @@ class FuelSim:
 
         # Populate grid
         for fuel in fuels:
-            col = int(fuel.pos.X() / CELL_SIZE)
-            row = int(fuel.pos.Y() / CELL_SIZE)
+            col = int(fuel.pos.x / CELL_SIZE)
+            row = int(fuel.pos.y / CELL_SIZE)
 
             if 0 <= col < GRID_COLS and 0 <= row < GRID_ROWS:
                 self._grid[col, row].append(fuel)
 
         # Check collisions
         for fuel in fuels:
-            col = int(fuel.pos.X() / CELL_SIZE)
-            row = int(fuel.pos.Y() / CELL_SIZE)
+            col = int(fuel.pos.x / CELL_SIZE)
+            row = int(fuel.pos.y / CELL_SIZE)
 
             for i in range(col - 1, col + 2):
                 for j in range(row - 1, row + 2):
