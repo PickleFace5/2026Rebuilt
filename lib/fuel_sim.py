@@ -429,7 +429,7 @@ class FuelSim:
         "_pair_gen", "_current_gen",
     )
 
-    def __init__(self, table_key: str = "Fuel Simulation/") -> None:
+    def __init__(self, table_key: str = "Fuel Simulation") -> None:
         cap = 600
         self._pos = np.zeros((cap, 3), dtype=np.float64)
         self._vel = np.zeros((cap, 3), dtype=np.float64)
