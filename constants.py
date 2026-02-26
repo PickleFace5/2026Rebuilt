@@ -131,7 +131,7 @@ class Constants:
             )
         GEAR_RATIO = 170/36
         SUPPLY_CURRENT = 40
-        MOI = .455
+        MOI = 0.093001732
         MAX_ROTATIONS = 0.865967
         MAX_MANUAL_VELOCITY = 20  # rad/sec
         MM_VELOCITY = 1
