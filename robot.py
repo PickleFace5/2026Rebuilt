@@ -1,5 +1,5 @@
 import wpilib
-from commands2 import CommandScheduler
+from commands2 import CommandScheduler, Command
 from ntcore import NetworkTableInstance
 from phoenix6 import SignalLogger
 from pykit.loggedrobot import LoggedRobot
@@ -7,7 +7,7 @@ from pykit.logger import Logger
 from pykit.logreplaysource import LogReplaySource
 from pykit.networktables.nt4Publisher import NT4Publisher
 from pykit.wpilog.wpilogwriter import WPILOGWriter
-from wpilib import DataLogManager, DriverStation, Timer
+from wpilib import DriverStation, Timer
 
 import robot_config
 
@@ -37,7 +37,8 @@ class Dwayne(LoggedRobot):
     def __init__(self, period = 0.02) -> None:
         super().__init__()
 
-        Logger.recordMetadata("Robot", robot_config.currentRobot.name.title())
+        Logger.recordMetadata("Robot", robot_config.currentRobot.name)
+        Logger.recordMetadata("Mode", Constants.currentMode.name)
 
         match Constants.currentMode:
             # Running on a real robot, log to a USB stick ("/U/logs")
@@ -89,10 +90,10 @@ class Dwayne(LoggedRobot):
         SignalLogger.stop()
         wpilib.LiveWindow.disableAllTelemetry()
 
-        DataLogManager.log("Robot initialized")
-
         dashboard_nt = NetworkTableInstance.getDefault().getTable("Elastic")
         self._match_time_pub = dashboard_nt.getFloatTopic("Match Time").publish()
+
+        print("Robot initialized")
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -108,24 +109,23 @@ class Dwayne(LoggedRobot):
     def autonomousInit(self) -> None:
         selected_auto = self.container.get_autonomous_command()
         if selected_auto is not None:
-            DataLogManager.log(f"Selected Auto: {selected_auto.getName()}")
+            print(f"Selected Auto: {selected_auto.getName()}")
             selected_auto.schedule()
-
-        elasticlib.select_tab("Autonomous")
 
     def autonomousPeriodic(self) -> None:
         pass
 
     def autonomousExit(self) -> None:
-        DataLogManager.log("Autonomous period ended")
-        elasticlib.select_tab("Teleop")
+        print("Autonomous period ended")
 
     def teleopInit(self) -> None:
-        DataLogManager.log("Teleoperated period started")
-        self.container.get_autonomous_command().cancel()
+        print("Teleoperated period started")
+        command = self.container.get_autonomous_command()
+        if isinstance(command, Command):
+            command.cancel()
 
     def teleopExit(self) -> None:
-        DataLogManager.log("Teleoperated period ended")
+        print("Teleoperated period ended")
         if DriverStation.isFMSAttached():
             elasticlib.send_notification(
                 Notification(
@@ -136,10 +136,8 @@ class Dwayne(LoggedRobot):
             )
 
     def testInit(self):
-        DataLogManager.log("Test period started")
+        print("Test period started")
         CommandScheduler.getInstance().cancelAll()
-        elasticlib.select_tab("Debug")
-        SignalLogger.start()
 
     def disabledInit(self):
         if self.container.vision is not None:
@@ -150,7 +148,7 @@ class Dwayne(LoggedRobot):
             self.container.vision.set_throttle(0)
 
     def testExit(self):
-        pass
+        print("Test period ended")
 
     def disabledPeriodic(self) -> None:
         pass
