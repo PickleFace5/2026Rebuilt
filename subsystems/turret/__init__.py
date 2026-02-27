@@ -6,7 +6,7 @@ from constants import Constants
 from subsystems import Subsystem
 from subsystems.turret.io import TurretIO
 from math import atan2, pi, radians as deg_to_rad
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Pose3d, Rotation3d
 from wpimath.units import rotationsToRadians
 from wpilib import DriverStation
 from subsystems import StateSubsystem
@@ -174,3 +174,7 @@ class TurretSubsystem(StateSubsystem):
             self.rotate_to_goal(desired_state)
         else:
             self.rotate_manually(0.0)
+
+    def get_component_pose(self) -> Pose3d:
+        """Gets the articulated component pose for AdvantageScope."""
+        return Pose3d(-0.1524, 0, 0, Rotation3d(0, 0, self._inputs.turret_position))

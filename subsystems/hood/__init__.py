@@ -11,8 +11,8 @@ from typing import Callable
 from pathplannerlib.auto import FlippingUtil, AutoBuilder
 from pykit.logger import Logger
 from wpilib import Alert, DriverStation
-from wpimath.geometry import Pose2d, Pose3d
-from wpimath.units import degreesToRotations
+from wpimath.geometry import Pose2d, Pose3d, Rotation3d
+from wpimath.units import degreesToRotations, rotationsToRadians
 
 from constants import Constants
 from subsystems import StateSubsystem
@@ -95,10 +95,14 @@ class HoodSubsystem(StateSubsystem):
         """get state"""
         return super().get_current_state()
 
-    def get_component_pose(self) -> Pose3d:
-        """For advantage scope modelling (placeholder)."""
-
     def rotate_manually(self, axis: float): # Axis is the value of the X-axis from a joystick
         self.set_desired_state(self.SubsystemState.MANUAL)
         target_velocity = axis * Constants.HoodConstants.MAX_MANUAL_VELOCITY
         self.io.set_velocity(target_velocity)
+
+    def get_component_pose(self, turret: Pose3d) -> Pose3d:
+        """
+        Gets the articulated component pose for AdvantageScope.
+        :param turret: Component pose of the turret
+        """
+        return Pose3d(-0.032810, 0, 0.465032, Rotation3d(0, rotationsToRadians(self.inputs.hood_position), 0)).rotateAround(turret.translation(), turret.rotation())
