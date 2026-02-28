@@ -11,6 +11,7 @@ from commands2.sysid import SysIdRoutine
 from pathplannerlib.auto import AutoBuilder
 from pathplannerlib.config import RobotConfig, PIDConstants
 from pathplannerlib.controller import PPHolonomicDriveController
+from pathplannerlib.logging import PathPlannerLogging
 from phoenix6 import SignalLogger, swerve, units, utils
 from phoenix6.phoenix_native import (SwerveDriveState_t, SwerveModuleState_t,
                                      SwerveModulePosition_t, Native)
@@ -248,6 +249,10 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
             lambda: DriverStation.getAlliance() == DriverStation.Alliance.kRed,
             self
         )
+
+        # PathPlanner logging
+        PathPlannerLogging.setLogTargetPoseCallback(lambda pose: Logger.recordOutput("PathPlanner/Target", pose))
+        PathPlannerLogging.setLogActivePathCallback(lambda path: Logger.recordOutput("PathPlanner/Path", path))
 
         # State optimizations
         n = len(self.modules)
