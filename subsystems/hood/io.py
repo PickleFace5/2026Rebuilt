@@ -1,23 +1,20 @@
 """IO"""
 from abc import ABC
 from dataclasses import dataclass
+from math import pi
 from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import MotionMagicVoltage,PositionVoltage, VelocityVoltage
+from phoenix6.controls import PositionVoltage, VelocityVoltage
 from phoenix6.hardware import TalonFX
-from phoenix6.signals import InvertedValue
-from phoenix6.signals import NeutralModeValue
+from phoenix6.signals import InvertedValue, NeutralModeValue
 from phoenix6.units import celsius
 from pykit.autolog import autolog
 from wpilib.simulation import DCMotorSim
 from wpimath.controller import PIDController
-from wpimath.geometry import Rotation2d
-from wpimath.system.plant import DCMotor
-from wpimath.system.plant import LinearSystemId
+from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radiansToRotations, volts, amperes, rotationsToRadians
-from math import pi
 
 from constants import Constants
 from util import tryUntilOk
@@ -134,7 +131,7 @@ class HoodIOTalonFX(HoodIO):
             rotation = Constants.HoodConstants.MAX_ROTATIONS + self._zero_position
         elif rotation < self._zero_position:
             rotation = self._zero_position
-        
+
         self.hood_motor.set_control(self.position_request.with_position(rotation))
 
     def set_velocity(self, velocity: float) -> None:
@@ -142,7 +139,7 @@ class HoodIOTalonFX(HoodIO):
         if velocity > 0 and self.position.value_as_double >= Constants.HoodConstants.MAX_ROTATIONS + self._zero_position:
             velocity = 0
         elif velocity < 0 and self.position.value_as_double <= self._zero_position:
-            velocity = 0   
+            velocity = 0
         self.velocity_request = VelocityVoltage(radiansToRotations(velocity))
         self.hood_motor.set_control(self.velocity_request)
 
@@ -163,7 +160,7 @@ class HoodIOSim(HoodIO):
         self.controller = PIDController(
             Constants.HoodConstants.GAINS.k_p / (2*pi),
             Constants.HoodConstants.GAINS.k_i / (2*pi),
-            Constants.HoodConstants.GAINS.k_d / (2*pi)
+            Constants.HoodConstants.GAINS.k_d / (2*pi) * 0.1 # D is too extreme
         )
 
         self._zero_position = 0.0  # Sim starts at 0
@@ -183,6 +180,7 @@ class HoodIOSim(HoodIO):
         inputs.hood_position = self.hood_sim.getAngularPosition()
         inputs.hood_velocity = self.hood_sim.getAngularVelocity()
         inputs.hood_current = abs(self.hood_sim.getCurrentDraw())
+        inputs.hood_setpoint = self.controller.getSetpoint()
 
     def set_open_loop(self, output: volts) -> None:
         """Set the open loop output."""
@@ -202,4 +200,4 @@ class HoodIOSim(HoodIO):
 
     def set_velocity(self, velocity: float) -> None:
         self.closed_loop = True
-        self.controller.setSetpoint(velocity)
+        self.controller.setSetpoint(rotationsToRadians(velocity))

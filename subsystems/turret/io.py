@@ -1,18 +1,18 @@
 from abc import ABC
 from dataclasses import dataclass
+from math import pi
 from typing import Final
 
 from phoenix6 import BaseStatusSignal
 from phoenix6.configs import TalonFXConfiguration
-from phoenix6.controls import PositionVoltage, MotionMagicVoltage, VelocityVoltage
+from phoenix6.controls import MotionMagicVoltage, VelocityVoltage
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue, InvertedValue
 from pykit.autolog import autolog
-from wpimath.units import radians, radians_per_second, radiansToRotations, volts, amperes, celsius
-from wpimath.system.plant import DCMotor, LinearSystemId
 from wpilib.simulation import DCMotorSim
 from wpimath.controller import PIDController
-from math import pi
+from wpimath.system.plant import DCMotor, LinearSystemId
+from wpimath.units import radians, radians_per_second, radiansToRotations, volts, amperes, celsius
 
 from constants import Constants
 from util import tryUntilOk
@@ -42,7 +42,6 @@ class TurretIO(ABC):
 
     def update_inputs(self, inputs: TurretIOInputs) -> None:
         """Update the inputs with current hardware/simulation state."""
-        pass
 
     def set_position(self, radians: float) -> None:
         """
@@ -50,19 +49,17 @@ class TurretIO(ABC):
         Args:
             radians: The position in radians to set the turret to.
         """
-        pass
-    
+
     def set_velocity(self, velocity: float) -> None:
         """
         Set the turret velocity in radians per second.
         Args:
             velocity: The velocity in radians per second to set the turret to.
         """
-        pass
 
 
 class TurretIOTalonFX(TurretIO):
-    
+
     def __init__(self) -> None:
         self.turret_motor: Final[TalonFX] = TalonFX(Constants.CanIDs.TURRET_TALON, "rio")
 
@@ -70,7 +67,7 @@ class TurretIOTalonFX(TurretIO):
             Constants.TurretConstants.GAINS.k_p,
             Constants.TurretConstants.GAINS.k_i,
             Constants.TurretConstants.GAINS.k_d,
-            ) 
+            )
 
         motor_config = TalonFXConfiguration()
         motor_config.slot0 = Constants.TurretConstants.GAINS
@@ -115,7 +112,7 @@ class TurretIOTalonFX(TurretIO):
         self.temperature,
         self.setpoint
     )
-        
+
         inputs.turret_connected = motor_status.is_ok()
         inputs.turret_position = self.position.value_as_double
         inputs.turret_velocity = self.velocity.value_as_double
@@ -199,10 +196,11 @@ class TurretIOSim(TurretIO):
 
         inputs.turret_connected = True
         inputs.turret_position = self.turretSim.getAngularPosition()
-        inputs.turret_velocity = self.turretSim.getAngularAcceleration()
+        inputs.turret_velocity = self.turretSim.getAngularVelocity()
         inputs.turret_applied_volts = self.applied_volts
         inputs.turret_current = abs(self.turretSim.getCurrentDraw())
         inputs.turret_temperature = 25.0  # Room temperature
+        inputs.turret_setpoint = self.controller.getSetpoint()
 
 
     def set_open_loop(self, output):
@@ -217,7 +215,7 @@ class TurretIOSim(TurretIO):
         """
         self.closed_loop = True
         self.target_position = radiansToRotations(radians)
-        self.controller.setSetpoint(radians)
+        self.controller.setSetpoint(-radians)
 
     def set_velocity(self, velocity: float) -> None:
         """
@@ -230,4 +228,4 @@ class TurretIOSim(TurretIO):
             velocity = 0
         elif velocity < 0 and self._motorPosition*(2*pi) <= self._zero_position:
             velocity = 0
-        self.controller.setSetpoint(velocity)   
+        self.controller.setSetpoint(-velocity)

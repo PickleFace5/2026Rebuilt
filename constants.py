@@ -88,7 +88,7 @@ class Constants:
         FLYWHEEL_RADIUS = None
         FEED_FORWARD = None
         MAX_RPS = None
-
+        SETPOINT_TOLERANCE = 3
 
     class FeederConstants:
         GEAR_RATIO = None
@@ -131,21 +131,23 @@ class Constants:
             )
         GEAR_RATIO = 170/36
         SUPPLY_CURRENT = 40
-        MOI = .455
+        MOI = 0.093001732
         MAX_ROTATIONS = 0.865967
         MAX_MANUAL_VELOCITY = 20  # rad/sec
+        SETPOINT_TOLERANCE = 0.167
         MM_VELOCITY = 1
         MM_ACCELERATION = 20
         # Only switch to other side of center when goal is at least this many degrees past middle
         CROSS_MIDDLE_HYSTERESIS_DEGREES = 5.0
+        
 
     class HoodConstants:
-        GEAR_RATIO = 68/3
+        GEAR_RATIO = 68/3  
         GAINS = (Slot0Configs()
-                .with_k_p(65.0)
+                .with_k_p(150)
                 .with_k_i(0.0)
-                .with_k_d(0.0)
-                .with_k_s(0.38)
+                .with_k_d(4.0)
+                .with_k_s(0.5)
                 .with_k_v(0.0)
                 .with_k_a(0.0)
         )
@@ -158,6 +160,7 @@ class Constants:
         MAX_ROTATIONS = 0.054687567
         MAX_DISTANCE_FOR_SLOW_LAUNCH = 2.55
         MAX_DISTANCE_FOR_MEDIUM_LAUNCH = 2.90
+        SETPOINT_TOLERANCE = 0.67
 
     class FieldConstants:
         HUB_POSE = Pose2d(4.625594, 4.034536, 0.0)  # blue hub, flip when needed

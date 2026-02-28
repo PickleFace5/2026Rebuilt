@@ -10,6 +10,10 @@ from subsystems.launcher import LauncherSubsystem
 from subsystems.hood import HoodSubsystem
 from subsystems.turret import TurretSubsystem
 
+from pykit.logger import Logger
+
+from constants import Constants
+
 
 class Superstructure(Subsystem):
     """
@@ -32,6 +36,7 @@ class Superstructure(Subsystem):
             Optional[LauncherSubsystem.SubsystemState],
             Optional[HoodSubsystem.SubsystemState],
             Optional[TurretSubsystem.SubsystemState],
+            bool, # Superstructure state? (Is it handled by periodic or just a single action?)
         ]] = {
 
         Goal.DEFAULT : (
@@ -40,6 +45,7 @@ class Superstructure(Subsystem):
             LauncherSubsystem.SubsystemState.IDLE,
             HoodSubsystem.SubsystemState.STOW,
             TurretSubsystem.SubsystemState.HUB,
+            True
         ),
 
         Goal.INTAKE : (
@@ -47,37 +53,40 @@ class Superstructure(Subsystem):
             FeederSubsystem.SubsystemState.STOP,
             LauncherSubsystem.SubsystemState.IDLE,
             HoodSubsystem.SubsystemState.STOW,
-            None
+            None, True
         ),
 
         Goal.LAUNCH : (
             IntakeSubsystem.SubsystemState.INTAKE,
             FeederSubsystem.SubsystemState.INWARD,
             LauncherSubsystem.SubsystemState.SCORE,
-            None, None
+            None, None, True
         ),
 
         Goal.AIMHUB : (
-            None, None, None, 
-            HoodSubsystem.SubsystemState.AIMBOT, 
-            TurretSubsystem.SubsystemState.HUB
+            None, None, None,
+            HoodSubsystem.SubsystemState.AIMBOT,
+            TurretSubsystem.SubsystemState.HUB,
+            False
         ),
 
         Goal.AIMOUTPOST : (
-            None, None, None, 
-            HoodSubsystem.SubsystemState.PASS, 
-            TurretSubsystem.SubsystemState.OUTPOST
+            None, None, None,
+            HoodSubsystem.SubsystemState.PASS,
+            TurretSubsystem.SubsystemState.OUTPOST,
+            False
         ),
 
         Goal.AIMDEPOT : (
-            None, None, None, 
-            HoodSubsystem.SubsystemState.PASS, 
-            TurretSubsystem.SubsystemState.DEPOT
+            None, None, None,
+            HoodSubsystem.SubsystemState.PASS,
+            TurretSubsystem.SubsystemState.DEPOT,
+            False
         ),
 
     }
 
-    def __init__(self, 
+    def __init__(self,
             intake: Optional[IntakeSubsystem] = None,
             feeder: Optional[FeederSubsystem] = None,
             launcher: Optional[LauncherSubsystem] = None,
@@ -107,37 +116,74 @@ class Superstructure(Subsystem):
         self.hood = hood
         self.turret = turret
 
-        self._goal = self.Goal.DEFAULT
-        self.set_goal_command(self._goal)
+        self._goal_state = self.Goal.DEFAULT
+        self.set_goal_command(self._goal_state)
 
-        # table = NetworkTableInstance.getDefault().getTable("Superstructure")
-        # self._current_goal_pub = table.getStringTopic("Current Goal").publish()
-        # self._component_poses = table.getStructArrayTopic("Components", Pose3d).publish()
+        self._turret_check = False
+        self._hood_check = False
+        self._flywheel_check = False
+
+        self._checks_override = False
 
     def periodic(self):
         if DriverStation.isDisabled():
             return
-        # TODO add other subsystem periodic functions
+
+        self._turret_check = abs(self.turret.inputs.turret_setpoint - self.turret.inputs.turret_position) < Constants.TurretConstants.SETPOINT_TOLERANCE
+        self._hood_check = abs(self.hood.inputs.hood_setpoint - self.hood.inputs.hood_position) < Constants.HoodConstants.SETPOINT_TOLERANCE
+        self._flywheel_check = abs(self.launcher.desired_motorRPS - self.launcher.inputs.motorVelocity) < Constants.LauncherConstants.SETPOINT_TOLERANCE
+
+        match self._goal_state:
+            case self.Goal.DEFAULT:
+                if self.feeder.is_locked:
+                    self.feeder.unlock()
+                    self.feeder.set_desired_state(FeederSubsystem.SubsystemState.STOP)
+
+            case self.Goal.INTAKE:
+                if self.feeder.is_locked:
+                    self.feeder.unlock()
+                    self.feeder.set_desired_state(FeederSubsystem.SubsystemState.INWARD)
+
+            case self.Goal.LAUNCH:
+                if (self._turret_check and self._hood_check and self._flywheel_check) or self._checks_override:
+                    self.feeder.unlock()
+                    self.feeder.set_desired_state(FeederSubsystem.SubsystemState.INWARD)
+
+                else:
+                    self.feeder.set_desired_state(FeederSubsystem.SubsystemState.STOP)
+                    self.feeder.lock()
+
+        Logger.recordOutput("Superstructure/Goal State", self._goal_state.name)
+        Logger.recordOutput("Superstructure/Turret Check", self._turret_check)
+        Logger.recordOutput("Superstructure/Hood Check", self._hood_check)
+        Logger.recordOutput("Superstructure/Flywheel Check", self._flywheel_check)
+        Logger.recordOutput("Superstructure/Overridden", self._checks_override)
+
 
     def _set_goal(self, goal: Goal) -> None:
-        self._goal = goal
 
-        intake_state, feeder_state, launcher_state, hood_state, turret_state = self._goal_to_states.get(goal, (None, None, None, None, None))
+        intake_state, feeder_state, launcher_state, hood_state, turret_state, superstructure_state = self._goal_to_states.get(goal, (None, None, None, None, None, False))
 
-        if not (self.intake is None or intake_state is None):
+        if not intake_state is None:
             self.intake.set_desired_state(intake_state)
 
-        if not (self.feeder is None or feeder_state is None):
+        if not feeder_state is None:
             self.feeder.set_desired_state(feeder_state)
 
-        if not (self.launcher is None or launcher_state is None):
+        if not launcher_state is None:
             self.launcher.set_desired_state(launcher_state)
 
-        if not (self.hood is None or hood_state is None):
+        if not hood_state is None:
             self.hood.set_desired_state(hood_state)
 
-        if not (self.turret is None or turret_state is None):
+        if not turret_state is None:
             self.turret.set_desired_state(turret_state)
+
+        if superstructure_state:
+            self._goal_state = goal
+
+    def _set_override(self) -> None:
+        self._checks_override = not self._checks_override
 
     def set_goal_command(self, goal: Goal) -> Command:
         """
@@ -149,3 +195,6 @@ class Superstructure(Subsystem):
         :rtype:      Command
         """
         return cmd.runOnce(lambda: self._set_goal(goal), self)
+
+    def override_checks(self) -> Command:
+        return cmd.runOnce(lambda: self._set_override(), self)

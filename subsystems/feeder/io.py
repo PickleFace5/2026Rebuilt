@@ -10,7 +10,7 @@ from phoenix6.signals import NeutralModeValue
 from pykit.autolog import autolog
 from wpilib.simulation import DCMotorSim
 
-from wpimath.units import radians, radians_per_second, amperes, celsius
+from wpimath.units import radians, radians_per_second, amperes, celsius, rotationsToRadians
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.controller import PIDController
@@ -154,7 +154,7 @@ class FeederIOSim(FeederIO):
 
     def updateInputs(self, inputs: FeederIO.FeederIOInputs) -> None:
         """Update inputs with simulated state."""
-        
+
         self._simMotor.update(0.02)
 
         if self._closedLoop:
@@ -176,4 +176,4 @@ class FeederIOSim(FeederIO):
 
     def setMotorRPS(self, rps: float) -> None:
         """Set the motor output RPS (revolutions per second) (simulated)."""
-        self._controller.setSetpoint(rps)
+        self._controller.setSetpoint(rotationsToRadians(rps))

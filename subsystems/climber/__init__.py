@@ -4,6 +4,7 @@ from typing import Final
 from pykit.autolog import autologgable_output
 from pykit.logger import Logger
 from wpilib import Alert
+from wpimath.geometry import Pose3d
 
 from constants import Constants
 from subsystems import StateSubsystem
@@ -53,6 +54,8 @@ class ClimberSubsystem(StateSubsystem):
         # Update alerts
         self._motor_disconnected_alert.set(not self._inputs.climber_connected)
 
+        super().periodic()
+
     def set_desired_state(self, desired_state: SubsystemState) -> None:
         """
         Set the desired climber state.
@@ -68,3 +71,8 @@ class ClimberSubsystem(StateSubsystem):
         )
 
         self._io.set_position(motor_rotation)
+
+    def get_component_pose(self) -> Pose3d:
+        """Gets the articulated component pose for AdvantageScope."""
+        # Current a placeholder because... yeah I have no clue how it works
+        return Pose3d()

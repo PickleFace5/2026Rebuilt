@@ -6,7 +6,7 @@ from constants import Constants
 from subsystems import Subsystem
 from subsystems.turret.io import TurretIO
 from math import atan2, pi, radians as deg_to_rad
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Pose3d, Rotation3d
 from wpimath.units import rotationsToRadians
 from wpilib import DriverStation
 from subsystems import StateSubsystem
@@ -31,7 +31,7 @@ class TurretSubsystem(StateSubsystem):
         super().__init__("Turret", self.SubsystemState.MANUAL)
 
         self._io: Final[TurretIO] = io
-        self._inputs = TurretIO.TurretIOInputs()
+        self.inputs = TurretIO.TurretIOInputs()
         self.set_desired_state(TurretSubsystem.SubsystemState.MANUAL)
         self.robot_pose_supplier = robot_pose_supplier
 
@@ -47,23 +47,25 @@ class TurretSubsystem(StateSubsystem):
     def periodic(self):
 
         # Update inputs from hardware/simulation
-        self._io.update_inputs(self._inputs)
+        self._io.update_inputs(self.inputs)
 
         # Log inputs to PyKit
-        Logger.processInputs("Turret", self._inputs)
+        Logger.processInputs("Turret", self.inputs)
         Logger.recordOutput("Turret/X Distance", self.x)
         Logger.recordOutput("Turret/Y Distance", self.y)
         Logger.recordOutput("Turret/Robot Current Radians", self.current_radians)
         Logger.recordOutput("Turret/Target Radians", self.target_radians)
 
         # Update alerts
-        self.turret_disconnected_alert.set(not self._inputs.turret_connected)
+        self.turret_disconnected_alert.set(not self.inputs.turret_connected)
 
         self.current_radians = self.robot_pose_supplier().rotation().radians() + self.independent_rotation.radians()
 
         if self.get_current_state() != self.SubsystemState.MANUAL:
             self.rotate_to_goal(self.get_current_state())
-        
+
+        super().periodic()
+
     def get_radians_to_goal(self) -> float:
         """
         Field-frame angle (radians) from robot to goal. 0 = +X (red alliance wall), CCW positive.
@@ -127,7 +129,7 @@ class TurretSubsystem(StateSubsystem):
             desired_in_range -= 2 * pi
 
         current_turret = rotationsToRadians(
-            self._inputs.turret_position - self._inputs.turret_zero_position
+            self.inputs.turret_position - self.inputs.turret_zero_position
         )
         middle = max_radians / 2
         hysteresis_rad = deg_to_rad(Constants.TurretConstants.CROSS_MIDDLE_HYSTERESIS_DEGREES)
@@ -172,3 +174,7 @@ class TurretSubsystem(StateSubsystem):
             self.rotate_to_goal(desired_state)
         else:
             self.rotate_manually(0.0)
+
+    def get_component_pose(self) -> Pose3d:
+        """Gets the articulated component pose for AdvantageScope."""
+        return Pose3d(-0.1524, 0, 0, Rotation3d(0, 0, self.inputs.turret_position))

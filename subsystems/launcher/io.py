@@ -9,7 +9,7 @@ from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue, MotorAlignmentValue, InvertedValue
 
 from pykit.autolog import autolog
-from wpimath.units import radians, radians_per_second, volts, amperes, celsius
+from wpimath.units import radians, radians_per_second, volts, amperes, celsius, rotationsToRadians, radiansToRotations
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.controller import PIDController
 from wpilib.simulation import FlywheelSim
@@ -132,12 +132,12 @@ class LauncherIOSim(LauncherIO):
 
     def __init__(self) -> None:
         """Initialize the simulation IO."""
-        self._motorType = DCMotor.krakenX44FOC(2) 
+        self._motorType = DCMotor.krakenX44FOC(2)
 
         linearSystem = LinearSystemId.flywheelSystem(
             self._motorType,
             LauncherConstants.MOMENT_OF_INERTIA,
-            LauncherConstants.GEAR_RATIO
+            1/LauncherConstants.GEAR_RATIO
         )
         self._simMotor = FlywheelSim(linearSystem, self._motorType, [0])
         self._closedloop = True
@@ -151,7 +151,7 @@ class LauncherIOSim(LauncherIO):
                             LauncherConstants.GAINS.k_i / (2*pi),
                             LauncherConstants.GAINS.k_d / (2*pi),
                             0.02)
-                        
+
     def updateInputs(self, inputs: LauncherIO.LauncherIOInputs) -> None:
         """Update inputs with simulated state."""
 
@@ -159,7 +159,7 @@ class LauncherIOSim(LauncherIO):
 
         if self._closedloop:
             self._motorAppliedVolts = self._controller.calculate(
-                self._simMotor.getAngularVelocity())
+                self._simMotor.getAngularVelocity()) + LauncherConstants.GAINS.k_s / (2*pi) + (LauncherConstants.GAINS.k_v / (2*pi) * self._controller.getSetpoint())
         else:
             self._controller.reset()
 
@@ -167,7 +167,7 @@ class LauncherIOSim(LauncherIO):
 
         # Update inputs
         inputs.motorConnected = True
-        inputs.motorVelocity = self._simMotor.getAngularVelocity()
+        inputs.motorVelocity = radiansToRotations(self._simMotor.getAngularVelocity())
         inputs.motorAppliedVolts = self._simMotor.getInputVoltage()
         inputs.motorCurrent = self._simMotor.getCurrentDraw()
         inputs.motorTemperature = 25.0
@@ -176,4 +176,4 @@ class LauncherIOSim(LauncherIO):
 
     def setMotorRPS(self, rps: float) -> None:
         """Set the motor output velocity."""
-        self._controller.setSetpoint(rps)
+        self._controller.setSetpoint(rotationsToRadians(rps))

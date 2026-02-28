@@ -18,7 +18,7 @@ GeneralConstants = Constants.GeneralConstants
 
 def velocityToWheelRPS(velocity: float) -> float:
     """Converts m/s to rotations per second for the flywheel, accounting for inertia."""
-        
+
     effective_rotational_inertia = 7 * GeneralConstants.GAME_PIECE_WEIGHT * (LauncherConstants.FLYWHEEL_RADIUS ** 2)
 
     speed_transfer_percentage = (
@@ -28,7 +28,7 @@ def velocityToWheelRPS(velocity: float) -> float:
     )
 
     rpm = (velocity) / (LauncherConstants.FLYWHEEL_RADIUS * speed_transfer_percentage)
-        
+
     return rpm/(2*pi)
 
 class LauncherSubsystem(StateSubsystem):
@@ -40,7 +40,7 @@ class LauncherSubsystem(StateSubsystem):
         IDLE = auto()
         SCORE = auto()
         PASS = auto()
-        
+
     _state_configs: dict[SubsystemState, float] = {
         # Meters per second
         SubsystemState.IDLE: 0, #velocityToWheelRPS(5.0),
@@ -52,12 +52,12 @@ class LauncherSubsystem(StateSubsystem):
         super().__init__("Launcher", self.SubsystemState.SCORE)
 
         self._io: Final[LauncherIO] = io
-        self._inputs = LauncherIO.LauncherIOInputs()
+        self.inputs = LauncherIO.LauncherIOInputs()
         self._robot_pose_supplier = robot_pose_supplier
         self._desired_projectile_velocity = 0.0
-        self._desired_motorRPS = 0.0
+        self.desired_motorRPS = 0.0
         self.distance = 1.0
-        
+
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
         self.set_desired_state(self.SubsystemState.IDLE)
@@ -76,7 +76,7 @@ class LauncherSubsystem(StateSubsystem):
     def periodic(self) -> None:
         """Called periodically to update inputs and log data."""
         # Update inputs from hardware/simulation
-        self._io.updateInputs(self._inputs)
+        self._io.updateInputs(self.inputs)
 
         # When in SCORE, adjust velocity by distance to hub (same as hood)
         if self.get_current_state() == self.SubsystemState.SCORE:
@@ -92,35 +92,37 @@ class LauncherSubsystem(StateSubsystem):
             )
             base_velocity = self._state_configs[self.SubsystemState.SCORE]
             if self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-                self._desired_motorRPS = base_velocity + 10.0
+                self.desired_motorRPS = base_velocity + 10.0
             elif self.distance <= Constants.HoodConstants.MAX_DISTANCE_FOR_MEDIUM_LAUNCH and self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-                self._desired_motorRPS = base_velocity + 5.0
+                self.desired_motorRPS = base_velocity + 5.0
             else:
-                self._desired_motorRPS = base_velocity
-            self._io.setMotorRPS(self._desired_motorRPS)
+                self.desired_motorRPS = base_velocity
+            self._io.setMotorRPS(self.desired_motorRPS)
 
         # Log inputs to PyKit
-        Logger.processInputs("Launcher", self._inputs)
+        Logger.processInputs("Launcher", self.inputs)
 
         # Log outputs to PyKit
         Logger.recordOutput("Launcher/Target Projectile Velocity", self._desired_projectile_velocity)
-        Logger.recordOutput("Launcher/Target Motor RPS", self._desired_motorRPS)
+        Logger.recordOutput("Launcher/Target Motor RPS", self.desired_motorRPS)
         Logger.recordOutput("Launcher/DistanceToHub", self.distance)
 
         # Update alerts
-        self._motorDisconnectedAlert.set(not self._inputs.motorConnected)
+        self._motorDisconnectedAlert.set(not self.inputs.motorConnected)
+
+        super().periodic()
 
     def set_desired_state(self, desired_state: SubsystemState) -> None:
         if not super().set_desired_state(desired_state):
             return
 
         projectile_velocity = self._state_configs.get(
-            desired_state, 
+            desired_state,
             0.0
         )#self.get_aim_velocity(desired_state)
 
-        self._desired_motorRPS = projectile_velocity
-        self._io.setMotorRPS(self._desired_motorRPS)
+        self.desired_motorRPS = projectile_velocity
+        self._io.setMotorRPS(self.desired_motorRPS)
 
     """def get_aim_velocity(self, state: SubsystemState) -> float:
         if state == self.SubsystemState.SCORE:
@@ -143,4 +145,3 @@ class LauncherSubsystem(StateSubsystem):
 
     def find_position(self) -> float:
         return self._robot_pose_supplier().X
-
