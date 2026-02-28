@@ -38,6 +38,7 @@ class StateSubsystem(Subsystem):
         self.setName(name.title())
 
         self._locked = False
+        Logger.recordOutput(f"{self.getName()}/Locked", self._locked)
 
         if not isinstance(starting_state, self.SubsystemState):
             raise TypeError("starting_state must be a SubsystemState")
