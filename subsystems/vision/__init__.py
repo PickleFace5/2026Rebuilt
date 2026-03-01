@@ -13,8 +13,7 @@ from wpilib import Alert
 from wpimath.geometry import Pose2d
 
 from constants import Constants
-from subsystems.vision.io import (CameraObservation, VisionIO, VisionObservation,
-                                  ObservationType, VisionIOLimelight)
+from subsystems.vision.io import VisionIO, ObservationType
 
 
 # pylint: disable=too-few-public-methods, too-many-instance-attributes
@@ -64,66 +63,70 @@ class VisionSubsystem(Subsystem):
     # pylint: disable=too-many-locals
     def periodic(self) -> None:
         """Log and send all observations."""
-        io = self._io
         inputs = self._inputs
         alerts = self._alerts
-        max_amb = self._max_ambiguity
-        max_z = self._max_z_error
-        field = self._field_layout
-        field_len = self._field_length
-        field_wid = self._field_width
-        lin_base = self._linear_std_baseline
-        ang_base = self._angular_std_baseline
-        tag_poses = self._tag_poses
-        robot_poses = self._robot_poses
-        robot_poses_accepted = self._robot_poses_accepted
-        robot_poses_rejected = self._robot_poses_rejected
+
         all_tag_poses = self._all_tag_poses
         all_robot_poses = self._all_robot_poses
         all_robot_poses_accepted = self._all_robot_poses_accepted
         all_robot_poses_rejected = self._all_robot_poses_rejected
-        consumer = self._consumer
 
-        for i, (cam, inp) in enumerate(zip(io, inputs)):
+        for i, (cam, inp) in enumerate(zip(self._io, inputs)):
             cam.update_inputs(inp)
-            Logger.processInputs(f"Vision/{inp.name}", inputs[i])
+            Logger.processInputs(f"Vision/{inp.name}", inp)
             alerts[i].set(not inp.connected)
 
         all_tag_poses.clear()
         all_robot_poses.clear()
         all_robot_poses_accepted.clear()
         all_robot_poses_rejected.clear()
+
+        field = self._field_layout
+        max_amb = self._max_ambiguity
+        max_z = self._max_z_error
+        field_len = self._field_length
+        field_wid = self._field_width
+        lin_base = self._linear_std_baseline
+        ang_base = self._angular_std_baseline
+        consumer = self._consumer
+
+        tag_poses_list = self._tag_poses
+        robot_poses_list = self._robot_poses
+        robot_poses_accepted_list = self._robot_poses_accepted
+        robot_poses_rejected_list = self._robot_poses_rejected
+
         for i, camera in enumerate(inputs):
-            tag_poses = tag_poses[i]
-            robot_poses = robot_poses[i]
-            robot_poses_accepted = robot_poses_accepted[i]
-            robot_poses_rejected = robot_poses_rejected[i]
-            tag_poses.clear()
-            robot_poses.clear()
-            robot_poses_accepted.clear()
-            robot_poses_rejected.clear()
+            cam_tag_poses = tag_poses_list[i]
+            cam_robot_poses = robot_poses_list[i]
+            cam_robot_poses_accepted = robot_poses_accepted_list[i]
+            cam_robot_poses_rejected = robot_poses_rejected_list[i]
+            cam_tag_poses.clear()
+            cam_robot_poses.clear()
+            cam_robot_poses_accepted.clear()
+            cam_robot_poses_rejected.clear()
+
             for tag_id in camera.tag_ids:
                 pose = field.getTagPose(tag_id)
                 if pose is not None:
-                    tag_poses.append(pose)
+                    cam_tag_poses.append(pose)
 
             for observation in camera.observations:
                 reject_pose = (
-                    observation.tag_count == 0
-                    or (
-                    observation.tag_count == 1
-                    and observation.ambiguity > max_amb
-                    )
-                    or abs(observation.pose.Z()) > max_z
-                    or not (0.0 <= observation.pose.X() <= field_len)
-                    or not (0.0 <= observation.pose.Y() <= field_wid)
+                        observation.tag_count == 0
+                        or (
+                                observation.tag_count == 1
+                                and observation.ambiguity > max_amb
+                        )
+                        or abs(observation.pose.Z()) > max_z
+                        or not (0.0 <= observation.pose.X() <= field_len)
+                        or not (0.0 <= observation.pose.Y() <= field_wid)
                 )
 
-                robot_poses.append(observation.pose)
+                cam_robot_poses.append(observation.pose)
                 if reject_pose:
-                    robot_poses_rejected.append(observation.pose)
+                    cam_robot_poses_rejected.append(observation.pose)
                 else:
-                    robot_poses_accepted.append(observation.pose)
+                    cam_robot_poses_accepted.append(observation.pose)
 
                 if reject_pose:
                     continue
@@ -133,11 +136,10 @@ class VisionSubsystem(Subsystem):
                         / observation.tag_count
                 )
                 linear_std = lin_base * std_dev_factor
-                if observation.observation == ObservationType.MEGATAG_2.value:
+                if observation.observation == ObservationType.MEGATAG_2:
                     angular_std = inf
                 else:
-                    angular_std = (ang_base *
-                                   std_dev_factor)
+                    angular_std = ang_base * std_dev_factor
 
                 consumer(
                     observation.pose.toPose2d(),
@@ -145,19 +147,37 @@ class VisionSubsystem(Subsystem):
                     (linear_std, linear_std, angular_std)
                 )
 
-            Logger.recordOutput(f"Vision/{camera.name}/TagPoses", tag_poses)
-            Logger.recordOutput(f"Vision/{camera.name}/RobotPoses", robot_poses)
-            Logger.recordOutput(f"Vision/{camera.name}/RobotPosesAccepted", robot_poses_accepted)
-            Logger.recordOutput(f"Vision/{camera.name}/RobotPosesRejected", robot_poses_rejected)
-            all_tag_poses.extend(tag_poses)
-            all_robot_poses.extend(robot_poses)
-            all_robot_poses_accepted.extend(robot_poses_accepted)
-            all_robot_poses_rejected.extend(robot_poses_rejected)
+            Logger.recordOutput(
+                f"Vision/{camera.name}/TagPoses",
+                cam_tag_poses
+            )
+            Logger.recordOutput(
+                f"Vision/{camera.name}/RobotPoses",
+                cam_robot_poses
+            )
+            Logger.recordOutput(
+                f"Vision/{camera.name}/RobotPosesAccepted",
+                cam_robot_poses_accepted
+            )
+            Logger.recordOutput(
+                f"Vision/{camera.name}/RobotPosesRejected",
+                cam_robot_poses_rejected
+            )
+            all_tag_poses.extend(cam_tag_poses)
+            all_robot_poses.extend(cam_robot_poses)
+            all_robot_poses_accepted.extend(cam_robot_poses_accepted)
+            all_robot_poses_rejected.extend(cam_robot_poses_rejected)
 
         Logger.recordOutput("Vision/AllTagPoses", all_tag_poses)
         Logger.recordOutput("Vision/AllRobotPoses", all_robot_poses)
-        Logger.recordOutput("Vision/AllRobotPosesAccepted", all_robot_poses_accepted)
-        Logger.recordOutput("Vision/AllRobotPosesRejected", all_robot_poses_rejected)
+        Logger.recordOutput(
+            "Vision/AllRobotPosesAccepted",
+            all_robot_poses_accepted
+        )
+        Logger.recordOutput(
+            "Vision/AllRobotPosesRejected",
+            all_robot_poses_rejected
+        )
 
     def set_throttle(self, throttle: int):
         """

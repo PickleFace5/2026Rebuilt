@@ -5,31 +5,31 @@ Structs are used to simplify logging and reduce logging overhead.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import IntEnum
 from math import radians
 from typing import List, Callable
 
 from ntcore import NetworkTableInstance
 from pykit.autolog import autolog
 from wpilib import RobotController
-from wpimath.geometry import Pose3d, Transform3d, Rotation2d, Rotation3d, Pose2d
+from wpimath.geometry import Pose3d, Transform3d, Rotation2d, Rotation3d
 from wpiutil.wpistruct import make_wpistruct
 
 
-class ObservationType(Enum):
+class ObservationType(IntEnum):
     """
     Types of observations from different cameras.
 
     MegaTag 1 and 2 comes from Limelight cameras, PhotonVision comes from simulation.
     """
-    MEGATAG_1 = auto()
-    MEGATAG_2 = auto()
-    PHOTONVISION = auto()
+    MEGATAG_1 = 1
+    MEGATAG_2 = 2
+    PHOTONVISION = 0
 
 
 @make_wpistruct(name="CameraObservation")
 @autolog
-@dataclass
+@dataclass(frozen=True, slots=True)
 class CameraObservation:
     """Observation struct from cameras."""
     timestamp: float = 0
@@ -37,17 +37,7 @@ class CameraObservation:
     ambiguity: float = 0
     tag_count: int = 0
     avg_tag_dist: float = 0
-    observation: int = ObservationType.PHOTONVISION.value
-
-
-@dataclass
-class VisionObservation:
-    """
-    Represents a vision measurement for the robot pose estimator.
-    """
-    pose: Pose2d
-    timestamp: float
-    std: tuple[float, float, float]
+    observation: int = ObservationType.PHOTONVISION
 
 
 # pylint: disable=too-few-public-methods
@@ -104,7 +94,6 @@ class VisionIOLimelight(VisionIO):
         ).publish()
         self.throttle_set = self.table.getDoubleTopic("throttle_set").publish()
 
-
     def update_inputs(self, inputs: VisionIO.VisionIOInputs) -> None:
         """Update subsystem inputs."""
         inputs.name = self.name
@@ -125,57 +114,61 @@ class VisionIOLimelight(VisionIO):
         pose_observations = []
 
         for sample in self.megatag1.readQueue():
-            if len(sample.value) == 0:
+            val = sample.value
+            length = len(val)
+            if length == 0:
                 continue
-            for i in range(11, len(sample.value), 7):
-                tag_ids.append(int(sample.value[i]))
+            for i in range(11, length, 7):
+                tag_ids.append(int(val[i]))
                 pose_observations.append(
                     CameraObservation(
                         # Timestamp (based on server timestamp of publish and latency)
-                        sample.time * 1e-6 - sample.value[6] * 1e-3,
+                        sample.time * 1e-6 - val[6] * 1e-3,
 
                         # 3D pose estimate
-                        VisionIOLimelight.parse_pose(sample.value),
+                        VisionIOLimelight.parse_pose(val),
 
                         # Ambiguity
                         # Using only the first tag because ambiguity isn't applicable for multi tag
-                        sample.value[17] if len(sample.value) >= 18 else 0,
+                        val[17] if len(val) >= 18 else 0,
 
                         # Tag count
-                        int(sample.value[7]),
+                        int(val[7]),
 
                         # Average tag distance
-                        sample.value[9],
+                        val[9],
 
                         # Observation type
-                        ObservationType.MEGATAG_1.value
+                        ObservationType.MEGATAG_1
                     )
                 )
 
         for sample in self.megatag2.readQueue():
-            if len(sample.value) == 0:
+            val = sample.value
+            length = len(val)
+            if length == 0:
                 continue
-            for i in range(11, len(sample.value), 7):
-                tag_ids.append(int(sample.value[i]))
+            for i in range(11, length, 7):
+                tag_ids.append(int(val[i]))
                 pose_observations.append(
                     CameraObservation(
                         # Timestamp (based on server timestamp of publish and latency)
-                        sample.time * 1e-6 - sample.value[6] * 1e-3,
+                        sample.time * 1e-6 - val[6] * 1e-3,
 
                         # 3D pose estimate
-                        VisionIOLimelight.parse_pose(sample.value),
+                        VisionIOLimelight.parse_pose(val),
 
                         # Ambiguity (0 because MegaTag 2 is already disambiguated)
                         0.0,
 
                         # Tag count
-                        int(sample.value[7]),
+                        int(val[7]),
 
                         # Average tag distance
-                        sample.value[9],
+                        val[9],
 
                         # Observation type
-                        ObservationType.MEGATAG_2.value
+                        ObservationType.MEGATAG_2
                     )
                 )
 
