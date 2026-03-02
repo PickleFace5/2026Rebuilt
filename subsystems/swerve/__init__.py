@@ -4,7 +4,7 @@ Contains the drivetrain, built off CTRE's Swerve Project Generator.
 import ctypes
 import math
 from dataclasses import dataclass, field
-from typing import Callable, overload, Self
+from typing import Callable, overload, Self, List
 
 from commands2 import Command, Subsystem
 from commands2.sysid import SysIdRoutine
@@ -307,6 +307,16 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
         """
         return self._swerve_state
 
+    @autolog_output("Drive/Modules/States")
+    def _get_module_states(self) -> List[SwerveModuleState]:
+        """Returns the measured module states."""
+        return self._module_states
+
+    @autolog_output("Drive/Modules/Targets")
+    def _get_module_targets(self) -> List[SwerveModuleState]:
+        """Returns the desired module targets."""
+        return self._module_targets
+
     def periodic(self):
         # Periodically try to apply the operator perspective.
         # If we haven't applied the operator perspective before,
@@ -349,9 +359,6 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
             ms.angle = Rotation2d(cs.angle)
             mt.speed = ct.speed
             mt.angle = Rotation2d(ct.angle)
-
-        Logger.recordOutput("Drive/Modules/States", module_states)
-        Logger.recordOutput("Drive/Modules/Targets", module_targets)
 
     def _start_sim_thread(self):
         def _sim_periodic():
