@@ -1,18 +1,16 @@
-from enum import auto, Enum, IntEnum
+from enum import auto, IntEnum
 from typing import Optional
 
 from commands2 import Command, Subsystem, cmd
+from pykit.logger import Logger
 from wpilib import DriverStation
 
-from subsystems.intake import IntakeSubsystem
-from subsystems.feeder import FeederSubsystem
-from subsystems.launcher import LauncherSubsystem
-from subsystems.hood import HoodSubsystem
-from subsystems.turret import TurretSubsystem
-
-from pykit.logger import Logger
-
 from constants import Constants
+from subsystems.feeder import FeederSubsystem
+from subsystems.hood import HoodSubsystem
+from subsystems.intake import IntakeSubsystem
+from subsystems.launcher import LauncherSubsystem
+from subsystems.turret import TurretSubsystem
 
 
 class Superstructure(Subsystem):
