@@ -7,6 +7,7 @@ from math import inf
 from typing import Callable
 
 from commands2 import Subsystem
+from ntcore import NetworkTableInstance
 from phoenix6 import units
 from pykit.logger import Logger
 from wpilib import Alert
@@ -71,6 +72,7 @@ class VisionSubsystem(Subsystem):
         all_robot_poses_accepted = self._all_robot_poses_accepted
         all_robot_poses_rejected = self._all_robot_poses_rejected
 
+        NetworkTableInstance.getDefault().flush()
         for i, (cam, inp) in enumerate(zip(self._io, inputs)):
             cam.update_inputs(inp)
             Logger.processInputs(f"Vision/{inp.name}", inp)

@@ -11,7 +11,7 @@ from typing import List, Callable
 
 from ntcore import NetworkTableInstance
 from pykit.autolog import autolog
-from wpilib import RobotController
+from wpilib import RobotController, Timer
 from wpimath.geometry import Pose3d, Transform3d, Rotation2d, Rotation3d
 from wpiutil.wpistruct import make_wpistruct
 
@@ -94,21 +94,24 @@ class VisionIOLimelight(VisionIO):
         ).publish()
         self.throttle_set = self.table.getDoubleTopic("throttle_set").publish()
 
+        self._heartbeat = Timer()
+        self._heartbeat.start()
+
     def update_inputs(self, inputs: VisionIO.VisionIOInputs) -> None:
         """Update subsystem inputs."""
         inputs.name = self.name
 
         # We're considered connected if an update has been seen in the last 250ms
-        latency_ms = (RobotController.getFPGATime() - self.latency.getLastChange()) / 1000
-        inputs.connected = latency_ms < 250
+        # (Checked every 5 seconds)
+        if self._heartbeat.get() >= 5:
+            self._heartbeat.reset()
+            latency_ms = (RobotController.getFPGATime() - self.latency.getLastChange()) / 1000
+            inputs.connected = latency_ms < 250
 
         # Update orientation
         self.orientation_publisher.set(
             [self.rotation_supplier().degrees(), 0, 0, 0, 0, 0]
         )
-
-        # Horrendous for network traffic but LL says to so...
-        NetworkTableInstance.getDefault().flush()
 
         tag_ids = []
         pose_observations = []
