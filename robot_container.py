@@ -10,7 +10,6 @@ from pathplannerlib.util import FlippingUtil
 from phoenix6 import swerve
 from phoenix6.configs import TalonFXConfiguration
 from phoenix6.configs.config_groups import NeutralModeValue, MotorOutputConfigs, FeedbackConfigs
-from pykit.logger import Logger
 from pykit.networktables.loggeddashboardchooser import LoggedDashboardChooser
 from wpilib import Field2d, SmartDashboard, XboxController, getDeployDirectory, RobotBase
 from wpimath.geometry import Rotation2d, Pose3d
