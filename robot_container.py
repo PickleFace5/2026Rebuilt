@@ -28,6 +28,7 @@ from subsystems.hood import HoodSubsystem
 from subsystems.hood.io import HoodIOSim, HoodIOTalonFX
 from subsystems.intake import IntakeSubsystem, IntakeIOSim, IntakeIOTalonFX
 from subsystems.launcher import LauncherIOSim, LauncherIOTalonFX, LauncherSubsystem
+from subsystems.aiming import ShooterAimingTable
 from subsystems.superstructure import Superstructure
 from subsystems.swerve import SwerveSubsystem
 from subsystems.turret import TurretSubsystem
@@ -217,8 +218,21 @@ class RobotContainer:
             self.fuel_sim.enable_air_resistance()
             self.fuel_sim.start()
 
+        # SOTM: pass drivetrain and turret-center pose for Virtual Goal aiming
+        aim_pose_supplier = (
+            make_turret_pose_supplier(lambda: self.drivetrain.get_cached_state().pose)
+            if self.drivetrain is not None
+            else None
+        )
         self.superstructure = Superstructure(
-            self.intake, self.feeder, self.launcher, self.hood, self.turret
+            self.intake,
+            self.feeder,
+            self.launcher,
+            self.hood,
+            self.turret,
+            drivetrain=self.drivetrain,
+            aim_pose_supplier=aim_pose_supplier,
+            aiming_table=ShooterAimingTable(),
         )
 
         self._setup_swerve_requests()

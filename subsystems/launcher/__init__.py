@@ -4,7 +4,7 @@ from pathplannerlib.auto import FlippingUtil, AutoBuilder
 from pykit.autolog import autologgable_output
 from pykit.logger import Logger
 from wpilib import Alert
-from typing import Callable, Final
+from typing import Callable, Final, Optional
 from subsystems import StateSubsystem
 from subsystems.launcher.io import LauncherIO, LauncherIOTalonFX, LauncherIOSim
 from wpimath.geometry import Pose2d
@@ -57,10 +57,15 @@ class LauncherSubsystem(StateSubsystem):
         self._desired_projectile_velocity = 0.0
         self.desired_motorRPS = 0.0
         self.distance = 1.0
+        self._aiming_rps: Optional[float] = None  # From unified aiming LUT (RPS)
 
         self._motorDisconnectedAlert = Alert("Launcher motor is disconnected.", Alert.AlertType.kError)
 
         self.set_desired_state(self.SubsystemState.IDLE)
+
+    def set_aiming_setpoint(self, rps: Optional[float]) -> None:
+        """Set launcher RPS from unified aiming LUT."""
+        self._aiming_rps = rps
 
         """"
         automatic state switching based on position
@@ -78,7 +83,7 @@ class LauncherSubsystem(StateSubsystem):
         # Update inputs from hardware/simulation
         self._io.updateInputs(self.inputs)
 
-        # When in SCORE, adjust velocity by distance to hub (same as hood)
+        # When in SCORE, use unified aiming LUT RPS (fallback to base config if not set)
         if self.get_current_state() == self.SubsystemState.SCORE:
             hub_pose = (
                 Constants.FieldConstants.HUB_POSE
@@ -90,13 +95,11 @@ class LauncherSubsystem(StateSubsystem):
                 .translation()
                 .distance(hub_pose.translation())
             )
-            base_velocity = self._state_configs[self.SubsystemState.SCORE]
-            if self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-                self.desired_motorRPS = base_velocity + 10.0
-            elif self.distance <= Constants.HoodConstants.MAX_DISTANCE_FOR_MEDIUM_LAUNCH and self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-                self.desired_motorRPS = base_velocity + 5.0
-            else:
-                self.desired_motorRPS = base_velocity
+            self.desired_motorRPS = (
+                self._aiming_rps
+                if self._aiming_rps is not None
+                else self._state_configs[self.SubsystemState.SCORE]
+            )
             self._io.setMotorRPS(self.desired_motorRPS)
 
         # Log inputs to PyKit

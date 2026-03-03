@@ -1,18 +1,28 @@
 from enum import auto, Enum
-from typing import Optional
+from typing import Optional, Callable, TYPE_CHECKING
 
 from commands2 import Command, Subsystem, cmd
+from pathplannerlib.auto import AutoBuilder
 from wpilib import DriverStation
+from wpimath.geometry import Pose2d
+from wpimath.kinematics import ChassisSpeeds
 
 from subsystems.intake import IntakeSubsystem
 from subsystems.feeder import FeederSubsystem
 from subsystems.launcher import LauncherSubsystem
 from subsystems.hood import HoodSubsystem
 from subsystems.turret import TurretSubsystem
+from subsystems.aiming import (
+    ShooterAimingTable,
+    get_aiming_parameters,
+)
 
 from pykit.logger import Logger
 
 from constants import Constants
+
+if TYPE_CHECKING:
+    from subsystems.swerve import SwerveSubsystem
 
 
 class Superstructure(Subsystem):
@@ -91,22 +101,16 @@ class Superstructure(Subsystem):
             feeder: Optional[FeederSubsystem] = None,
             launcher: Optional[LauncherSubsystem] = None,
             hood: Optional[HoodSubsystem] = None,
-            turret: Optional[TurretSubsystem] = None
+            turret: Optional[TurretSubsystem] = None,
+            drivetrain: Optional["SwerveSubsystem"] = None,
+            aim_pose_supplier: Optional[Callable[[], Pose2d]] = None,
+            aiming_table: Optional[ShooterAimingTable] = None,
                 ) -> None:
         """
         Constructs the superstructure using instance of each subsystem.
         Subsystems are optional to support robots that don't have all hardware.
-
-        :param intake: Subsystem that handles the intake
-          :type intake: Optional[IntakeSubsystem]
-        :param feeder: Subsystem that handles the feeder
-          :type feeder: Optional[FeederSubsystem]
-        :param launcher: Subsystem that handles the launcher
-          :type launcher: Optional[LauncherSubsystem]
-        :param hood: Subsystem that handles the hood
-          :type hood: Optional[HoodSubsystem]
-        :param turret: Subsystem that handles the turret
-          :type turret: Optional[TurretSubsystem]
+        SOTM (shooting on the move): pass drivetrain, aim_pose_supplier, aiming_table to enable
+        Virtual Goal aiming for LAUNCH and AIMHUB goals.
         """
         super().__init__()
 
@@ -115,6 +119,9 @@ class Superstructure(Subsystem):
         self.launcher = launcher
         self.hood = hood
         self.turret = turret
+        self._drivetrain = drivetrain
+        self._aim_pose_supplier = aim_pose_supplier
+        self._aiming_table = aiming_table or ShooterAimingTable()
 
         self._goal_state = self.Goal.DEFAULT
         self.set_goal_command(self._goal_state)
@@ -129,9 +136,50 @@ class Superstructure(Subsystem):
         if DriverStation.isDisabled():
             return
 
-        self._turret_check = abs(self.turret.inputs.turret_setpoint - self.turret.inputs.turret_position) < Constants.TurretConstants.SETPOINT_TOLERANCE
-        self._hood_check = abs(self.hood.inputs.hood_setpoint - self.hood.inputs.hood_position) < Constants.HoodConstants.SETPOINT_TOLERANCE
-        self._flywheel_check = abs(self.launcher.desired_motorRPS - self.launcher.inputs.motorVelocity) < Constants.LauncherConstants.SETPOINT_TOLERANCE
+        # Unified aiming: Virtual Goal + LUT setpoints (always when aiming/launching)
+        if self._goal_state in (self.Goal.LAUNCH, self.Goal.AIMHUB) and self._aim_pose_supplier and self._aiming_table:
+            real_goal = (
+                Constants.GoalLocations.BLUE_HUB
+                if not AutoBuilder.shouldFlip()
+                else Constants.GoalLocations.RED_HUB
+            )
+            field_speeds = (
+                self._drivetrain.get_field_relative_speeds()
+                if self._drivetrain is not None
+                else ChassisSpeeds(0.0, 0.0, 0.0)
+            )
+            params = get_aiming_parameters(
+                robot_pose=self._aim_pose_supplier(),
+                field_speeds=field_speeds,
+                real_goal_pose=real_goal,
+                aiming_table=self._aiming_table,
+            )
+            if self.turret is not None:
+                self.turret.set_target_field_angle(params.turret_angle_rad)
+            if self.hood is not None:
+                self.hood.set_aiming_setpoint(params.hood_rad)
+            if self.launcher is not None:
+                self.launcher.set_aiming_setpoint(params.rps)
+        else:
+            if self.turret is not None:
+                self.turret.set_target_field_angle(None)
+            if self.hood is not None:
+                self.hood.set_aiming_setpoint(None)
+            if self.launcher is not None:
+                self.launcher.set_aiming_setpoint(None)
+
+        self._turret_check = (
+            abs(self.turret.inputs.turret_setpoint - self.turret.inputs.turret_position) < Constants.TurretConstants.SETPOINT_TOLERANCE
+            if self.turret is not None else True
+        )
+        self._hood_check = (
+            abs(self.hood.inputs.hood_setpoint - self.hood.inputs.hood_position) < Constants.HoodConstants.SETPOINT_TOLERANCE
+            if self.hood is not None else True
+        )
+        self._flywheel_check = (
+            abs(self.launcher.desired_motorRPS - self.launcher.inputs.motorVelocity) < Constants.LauncherConstants.SETPOINT_TOLERANCE
+            if self.launcher is not None else True
+        )
 
         match self._goal_state:
             case self.Goal.DEFAULT:
