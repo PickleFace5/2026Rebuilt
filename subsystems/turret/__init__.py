@@ -1,6 +1,6 @@
 from enum import IntEnum, auto
 from math import atan2, pi, radians as deg_to_rad
-from typing import Final, Callable
+from typing import Final, Callable, Optional
 
 from pykit.logger import Logger
 from wpilib import Alert, DriverStation
@@ -41,9 +41,14 @@ class TurretSubsystem(StateSubsystem):
         self.independent_rotation = Rotation2d(0)
         self.current_radians = 0.0
         self.target_radians = 0.0
+        self._target_field_angle: Optional[float] = None  # SOTM virtual goal angle (rad), None = use real goal
 
         self.x = 6.7
         self.y = 4.1
+
+    def set_target_field_angle(self, angle_rad: Optional[float]) -> None:
+        """Set field-frame aim angle (rad). When None, turret uses real goal. Used for SOTM virtual goal."""
+        self._target_field_angle = angle_rad
 
     def periodic(self):
 
@@ -110,8 +115,12 @@ class TurretSubsystem(StateSubsystem):
         if self.get_current_state() == self.SubsystemState.MANUAL:
             return
 
-        # Field angle to goal (direction from robot to goal in field coords, CCW positive)
-        field_angle_to_goal = self.get_radians_to_goal()
+        # Field angle to goal (use virtual goal angle for SOTM when set, else real goal)
+        field_angle_to_goal = (
+            self._target_field_angle
+            if self._target_field_angle is not None
+            else self.get_radians_to_goal()
+        )
         robot_rotation = self.robot_pose_supplier().rotation().radians()
 
         # Turret angle relative to robot forward. Turret motor is CLOCKWISE_POSITIVE, field is CCW positive.

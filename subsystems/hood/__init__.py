@@ -5,7 +5,7 @@ TO DO:
 Integrate positions for passing (may switch to state subsystem for this)
 """
 from enum import IntEnum, auto
-from typing import Callable
+from typing import Callable, Optional
 
 from pathplannerlib.auto import FlippingUtil, AutoBuilder
 from pykit.logger import Logger
@@ -51,15 +51,11 @@ class HoodSubsystem(StateSubsystem):
         #self.hub_pose = Constants.FieldConstants.HUB_POSE  # blue hub
         self.distance = 1.0
         self.target = 1.0
+        self._aiming_hood_setpoint: Optional[float] = None  # From unified aiming LUT (rotations)
 
-    def interpolate(self) -> None:
-        """Updates hood angle."""
-        if self.distance <= Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-            self.target = 0.0000840628 * (self.distance ** 6.40933)
-        elif self.distance <= Constants.HoodConstants.MAX_DISTANCE_FOR_MEDIUM_LAUNCH and self.distance > Constants.HoodConstants.MAX_DISTANCE_FOR_SLOW_LAUNCH:
-            self.target = 0.03637695313 # Using a hardcoded value for this small range
-        else:
-            self.target = 0.0000139591 * (self.distance ** 5.1281)
+    def set_aiming_setpoint(self, hood_rotations: Optional[float]) -> None:
+        """Set hood angle from unified aiming LUT (rotations, motor units)."""
+        self._aiming_hood_setpoint = hood_rotations
 
     def periodic(self) -> None:
         """Runs stuff periodically (every 20 ms)."""
@@ -72,7 +68,11 @@ class HoodSubsystem(StateSubsystem):
         if self._auto_aim:
             self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
-            self.interpolate()
+            self.target = (
+                self._aiming_hood_setpoint
+                if self._aiming_hood_setpoint is not None
+                else Constants.HoodConstants.STOW
+            )
             self.io.set_position(self.target)
 
 

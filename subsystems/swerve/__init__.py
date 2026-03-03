@@ -21,7 +21,7 @@ from pykit.autolog import autologgable_output, autolog_output
 from pykit.logger import Logger
 from wpilib import DriverStation, Notifier, RobotController
 from wpilib.sysid import SysIdRoutineLog
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds
 from wpiutil.wpistruct import make_wpistruct
 
@@ -306,6 +306,18 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
         Subsystems needing the state should use this to prevent GIL.
         """
         return self._swerve_state
+
+    def get_field_relative_speeds(self) -> ChassisSpeeds:
+        """
+        Returns chassis velocities in field frame (for SOTM lead calculation).
+        Robot-relative speeds from cached state are rotated by current gyro heading.
+        """
+        state = self._swerve_state
+        robot_speeds = state.speeds
+        robot_rotation = state.pose.rotation()
+        velocity_vector = Translation2d(robot_speeds.vx, robot_speeds.vy)
+        field_velocity = velocity_vector.rotateBy(robot_rotation)
+        return ChassisSpeeds(field_velocity.X(), field_velocity.Y(), robot_speeds.omega)
 
     @autolog_output("Drive/Modules/States")
     def _get_module_states(self) -> List[SwerveModuleState]:
