@@ -68,11 +68,11 @@ class HoodSubsystem(StateSubsystem):
         if self._auto_aim:
             self.distance = (self.robot_pose_supplier()
                          .translation().distance(self.hub_pose.translation()))
-            self.target = (
-                self._aiming_hood_setpoint
-                if self._aiming_hood_setpoint is not None
-                else Constants.HoodConstants.STOW
-            )
+            if self._aiming_hood_setpoint is not None:
+                # LUT value is rotations from zero (hood down); add zero position for absolute motor setpoint
+                self.target = self.inputs.hood_zero_position + self._aiming_hood_setpoint
+            else:
+                self.target = Constants.HoodConstants.STOW
             self.io.set_position(self.target)
 
 
