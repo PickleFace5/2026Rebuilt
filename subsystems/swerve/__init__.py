@@ -300,7 +300,6 @@ class SwerveSubsystem(Subsystem, swerve.SwerveDrivetrain):
         """
         return self._sys_id_routine_to_apply.dynamic(direction)
 
-    #@autolog_output("Drive/State")
     def get_cached_state(self) -> SwerveDriveState:
         """
         Returns the current state of the drivetrain.
