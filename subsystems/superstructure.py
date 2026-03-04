@@ -227,6 +227,7 @@ class Superstructure(Subsystem):
         Logger.recordOutput("Superstructure/Overridden", self._checks_override)
         Logger.recordOutput("Superstructure/DistanceToHub", self._distance_to_hub)
         Logger.recordOutput("Superstructure/VirtualDistance", self._virtual_distance_m)
+        Logger.recordOutput("Superstructure/Feeder Good to activate", self._time_since_last_goal.get() > 0.5)
 
 
     def _set_goal(self, goal: Goal) -> None:
