@@ -17,7 +17,7 @@ from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radiansToRotations, volts, amperes, rotationsToRadians, radians_per_second
 
 from constants import Constants
-from util import tryUntilOk
+from util import try_until_ok
 
 
 class HoodIO:
@@ -75,7 +75,7 @@ class HoodIOTalonFX(HoodIO):
 
 
         # Apply motor configuration
-        tryUntilOk(5, lambda: self.hood_motor.configurator.apply(motor_config, 0.25))
+        try_until_ok(5, lambda: self.hood_motor.configurator.apply(motor_config, 0.25))
 
 
         # Create status signals for motor

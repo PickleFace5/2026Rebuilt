@@ -13,7 +13,7 @@ from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radians_per_second, volts, amperes, celsius, radiansToRotations
 
 from constants import Constants
-from util import tryUntilOk
+from util import try_until_ok
 
 
 class ClimberIO:
@@ -61,8 +61,8 @@ class ClimberIOTalonFX(ClimberIO):
         self._motor: Final[TalonFX] = TalonFX(motor_id, "*")
 
         # Apply motor configuration
-        tryUntilOk(5, lambda: self._motor.configurator.apply(motor_config, 0.25))
-        tryUntilOk(5, lambda: self._motor.set_position(0, 0.25))
+        try_until_ok(5, lambda: self._motor.configurator.apply(motor_config, 0.25))
+        try_until_ok(5, lambda: self._motor.set_position(0, 0.25))
 
         # Create status signals for motor
         self._position: Final = self._motor.get_position()

@@ -14,7 +14,7 @@ from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radians_per_second, amperes, celsius, rotationsToRadians
 
 from constants import Constants
-from util import tryUntilOk
+from util import try_until_ok
 
 
 class FeederIO:
@@ -65,8 +65,8 @@ class FeederIOTalonFX(FeederIO):
         _motor_config.motor_output.neutral_mode = NeutralModeValue.BRAKE
         _motor_config.feedback.sensor_to_mechanism_ratio = Constants.FeederConstants.GEAR_RATIO
 
-        tryUntilOk(5, lambda: self._motor.configurator.apply(_motor_config, 0.25))
-        tryUntilOk(5, lambda: self._motor.set_position(0, 0.25))
+        try_until_ok(5, lambda: self._motor.configurator.apply(_motor_config, 0.25))
+        try_until_ok(5, lambda: self._motor.set_position(0, 0.25))
 
         # Create status signals for motor
         self._position: Final = self._motor.get_position()

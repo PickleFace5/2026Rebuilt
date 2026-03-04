@@ -20,7 +20,7 @@ LauncherConstants = Constants.LauncherConstants
 GeneralConstants = Constants.GeneralConstants
 CanIds = Constants.CanIDs
 
-from util import tryUntilOk
+from util import try_until_ok
 
 
 class LauncherIO:
@@ -71,7 +71,7 @@ class LauncherIOTalonFX(LauncherIO):
         _motor_config.feedback.sensor_to_mechanism_ratio = LauncherConstants.GEAR_RATIO
         _motor_config.motor_output.inverted = InvertedValue.CLOCKWISE_POSITIVE
 
-        tryUntilOk(5, lambda: self._main_motor.configurator.apply(_motor_config, 0.25))
+        try_until_ok(5, lambda: self._main_motor.configurator.apply(_motor_config, 0.25))
 
         # Create status signals for motor
         self._position: Final = self._main_motor.get_position()

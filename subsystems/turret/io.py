@@ -15,7 +15,7 @@ from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import radians, radians_per_second, radiansToRotations, volts, amperes, celsius
 
 from constants import Constants
-from util import tryUntilOk
+from util import try_until_ok
 
 
 class TurretIO:
@@ -77,7 +77,7 @@ class TurretIOTalonFX(TurretIO):
         motor_config.motor_output.neutral_mode = NeutralModeValue.BRAKE
         motor_config.motor_output.inverted = InvertedValue.CLOCKWISE_POSITIVE
 
-        tryUntilOk(5, lambda: self.turret_motor.configurator.apply(motor_config, 0.25))
+        try_until_ok(5, lambda: self.turret_motor.configurator.apply(motor_config, 0.25))
 
         self.position = self.turret_motor.get_position()
         self.velocity = self.turret_motor.get_velocity()
