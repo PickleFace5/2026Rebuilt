@@ -1,3 +1,4 @@
+"""Main robot file"""
 import os
 
 import wpilib
@@ -6,42 +7,43 @@ from ntcore import NetworkTableInstance
 from phoenix6 import SignalLogger
 from pykit.loggedrobot import LoggedRobot
 from pykit.logger import Logger
-from pykit.logreplaysource import LogReplaySource
+from pykit.logtable import LogTable
 from pykit.networktables.nt4Publisher import NT4Publisher
 from pykit.wpilog.wpilogreader import WPILOGReader
 from pykit.wpilog.wpilogwriter import WPILOGWriter
 from wpilib import DriverStation, Timer
 
+import util
+from constants import Constants
+from lib import elasticlib
+from lib.elasticlib import Notification, NotificationLevel
 from robot_config import currentRobot, has_subsystem
+from robot_container import RobotContainer
 
-# Workaround for PyKit: ntcore IntegerPublisher and wpiutil DataLog expect int64,
-# but LogTable.getTimestamp() can exceed int64 max. Patch at source to fix all
-# receivers (NT4Publisher, WPILOGWriter, etc.).
-_INT64_MAX = 2**63 - 1
-from pykit.logtable import LogTable
+# Prevent int64 overflows in PyKit (apparently that exists).
+_INT64_MAX = 2 ** 63 - 1
 _original_get_timestamp = LogTable.getTimestamp
+
+
 def _patched_get_timestamp(self):
     ts = _original_get_timestamp(self)
     if ts > _INT64_MAX:
         ts = ts // 1000  # Assume nanoseconds -> microseconds
-    if ts > _INT64_MAX:
-        ts = _INT64_MAX
+    ts = min(ts, _INT64_MAX)
     return ts
+
+
 LogTable.getTimestamp = _patched_get_timestamp
-from constants import Constants
-from lib import elasticlib
-from lib.elasticlib import Notification, NotificationLevel
-from robot_container import RobotContainer
-import util
 
 
 class Dwayne(LoggedRobot):
+    """Dwayne: The robot, the myth, the legend, and the baller."""
 
-    def __init__(self, period = 0.02) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
         Logger.recordMetadata("Robot", currentRobot.name)
-        Logger.recordMetadata("Mode", Constants.currentMode.name)
+        Logger.recordMetadata("Mode", Constants.CURRENT_MODE.name)
 
         # Record subsystem metadata
         Logger.recordMetadata("ClimberPresent", str(has_subsystem("climber")))
@@ -50,9 +52,10 @@ class Dwayne(LoggedRobot):
         Logger.recordMetadata("IntakePresent", str(has_subsystem("intake")))
         Logger.recordMetadata("LauncherPresent", str(has_subsystem("intake")))
         Logger.recordMetadata("TurretPresent", str(has_subsystem("turret")))
-        Logger.recordMetadata("VisionPresent", str(has_subsystem("vision")))
+        Logger.recordMetadata("VisionPresent", "True")
+        Logger.recordMetadata("DrivetrainPresent", "True")
 
-        match Constants.currentMode:
+        match Constants.CURRENT_MODE:
             # Running on a real robot, log to a USB stick ("/U/logs")
             case Constants.Mode.REAL:
                 deploy_config = wpilib.deployinfo.getDeployData()
@@ -69,7 +72,10 @@ class Dwayne(LoggedRobot):
                     Logger.recordMetadata(
                         "Code Path", deploy_config.get("code-path", "")
                     )
-                    Logger.recordMetadata("Git Hash", deploy_config.get("git-hash", ""))
+                    Logger.recordMetadata(
+                        "Git Hash",
+                        deploy_config.get("git-hash", "")
+                    )
                     Logger.recordMetadata(
                         "Git Branch", deploy_config.get("git-branch", "")
                     )
@@ -94,18 +100,22 @@ class Dwayne(LoggedRobot):
                     WPILOGWriter(log_path[:-7] + "_sim.wpilog")
                 )
 
-        # Avoid CAN errors from pykit when no PDH/PDP is on the bus (or wrong module ID)
-        util._install_safe_power_distribution_logging()
+        # Avoid CAN errors from pykit when no PDH/PDP is on the bus (or
+        # wrong module ID)
+        util.install_safe_power_distribution_logging()
 
         # Start PyKit logger
         Logger.start()
 
-        DriverStation.silenceJoystickConnectionWarning(not DriverStation.isFMSAttached())
+        DriverStation.silenceJoystickConnectionWarning(
+            not DriverStation.isFMSAttached()
+        )
         self.container = RobotContainer()
 
+        # Disable Phoenix 6's signal logging (no need if we're using PyKit)
         SignalLogger.enable_auto_logging(False)
         SignalLogger.stop()
-        wpilib.LiveWindow.disableAllTelemetry()
+        wpilib.LiveWindow.disableAllTelemetry()  # leg
 
         # We can check ourselves if we're overrunning
         # And the warning it prints is laggy, so this makes it only tell us if
@@ -113,9 +123,15 @@ class Dwayne(LoggedRobot):
         CommandScheduler.getInstance().setPeriod(1.0)
 
         dashboard_nt = NetworkTableInstance.getDefault().getTable("Elastic")
-        self._match_time_pub = dashboard_nt.getFloatTopic("Match Time").publish()
-        self._game_phase_name_pub = dashboard_nt.getStringTopic("Game Phase").publish()
-        self._game_phase_time_pub = dashboard_nt.getFloatTopic("Phase Time").publish()
+        self._match_time_pub = dashboard_nt.getFloatTopic(
+            "Match Time"
+        ).publish()
+        self._game_phase_name_pub = dashboard_nt.getStringTopic(
+            "Game Phase"
+        ).publish()
+        self._game_phase_time_pub = dashboard_nt.getFloatTopic(
+            "Phase Time"
+        ).publish()
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -124,7 +140,10 @@ class Dwayne(LoggedRobot):
         self._game_phase_name_pub.set(phase_name)
         self._game_phase_time_pub.set(float(phase_time))
         if self.container.drivetrain is not None:
-            self.container._field.setRobotPose(self.container.drivetrain.get_cached_state().pose)
+            # pylint: disable=protected-access
+            self.container._field.setRobotPose(
+                self.container.drivetrain.get_cached_state().pose
+            )
 
         Logger.recordOutput("Components", self.container.get_component_poses())
 
@@ -156,7 +175,8 @@ class Dwayne(LoggedRobot):
                 Notification(
                     level=NotificationLevel.INFO.value,
                     title="Good match!",
-                    description="(again)" if DriverStation.getReplayNumber() > 1 else ""
+                    description="(again)" if DriverStation.getReplayNumber()
+                                             > 1 else ""
                 )
             )
 

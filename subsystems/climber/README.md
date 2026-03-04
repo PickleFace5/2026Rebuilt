@@ -26,25 +26,27 @@ from phoenix6.configs import TalonFXConfiguration
 from phoenix6.configs.config_groups import NeutralModeValue, MotorOutputConfigs, FeedbackConfigs
 
 # In RobotContainer.__init__():
-match Constants.currentMode:
+match Constants.CURRENT_MODE:
     case Constants.Mode.REAL:
         # Create motor config
         motor_config = (TalonFXConfiguration()
-            .with_slot0(Constants.ClimberConstants.GAINS)
-            .with_motor_output(MotorOutputConfigs().with_neutral_mode(NeutralModeValue.BRAKE))
-            .with_feedback(FeedbackConfigs().with_sensor_to_mechanism_ratio(Constants.ClimberConstants.GEAR_RATIO))
+                        .with_slot0(Constants.ClimberConstants.GAINS)
+                        .with_motor_output(MotorOutputConfigs().with_neutral_mode(NeutralModeValue.BRAKE))
+                        .with_feedback(
+            FeedbackConfigs().with_sensor_to_mechanism_ratio(Constants.ClimberConstants.GEAR_RATIO)
         )
-        
+                        )
+
         # Create real hardware IO
         climber_io = ClimberIOTalonFX(
             Constants.CanIDs.CLIMB_TALON,
             Constants.ClimberConstants.SERVO_PORT,
             motor_config
         )
-        
+
         # Create subsystem with real hardware IO
         self.climber = ClimberSubsystem(climber_io)
-        
+
     case Constants.Mode.SIM:
         # Create subsystem with simulation IO
         self.climber = ClimberSubsystem(ClimberIOSim())

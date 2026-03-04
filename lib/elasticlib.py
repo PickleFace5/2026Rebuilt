@@ -1,3 +1,4 @@
+# pylint: skip-file
 import json
 from enum import Enum
 
@@ -26,12 +27,18 @@ class Notification:
         Initializes an ElasticNotification object.
 
         Args:
-            level (str): The severity level of the notification. Default is 'INFO'.
-            title (str): The title of the notification. Default is an empty string.
-            description (str): The description of the notification. Default is an empty string.
-            display_time (int): Time in milliseconds for which the notification should be displayed. Default is 3000 ms.
-            width (float): Width of the notification display area. Default is 350.
-            height (float): Height of the notification display area. Default is -1 (automatic height).
+            level (str): The severity level of the notification. Default is
+            'INFO'.
+            title (str): The title of the notification. Default is an empty
+            string.
+            description (str): The description of the notification. Default
+            is an empty string.
+            display_time (int): Time in milliseconds for which the
+            notification should be displayed. Default is 3000 ms.
+            width (float): Width of the notification display area. Default
+            is 350.
+            height (float): Height of the notification display area. Default
+            is -1 (automatic height).
         """
         self.level = level
         self.title = title
@@ -54,16 +61,20 @@ def send_notification(notification: Notification):
     The notification is serialized as a JSON string before being published.
 
     Args:
-        notification (ElasticNotification): The notification object containing the notification details.
+        notification (ElasticNotification): The notification object
+        containing the notification details.
 
     Raises:
-        Exception: If there is an error during serialization or publishing the notification.
+        Exception: If there is an error during serialization or publishing
+        the notification.
     """
     global __notification_topic
     global __notification_publisher
 
     if not __notification_topic:
-        __notification_topic = NetworkTableInstance.getDefault().getStringTopic(
+        __notification_topic = NetworkTableInstance.getDefault(
+
+        ).getStringTopic(
             "/Elastic/RobotNotifications"
         )
     if not __notification_publisher:
@@ -91,8 +102,10 @@ def send_notification(notification: Notification):
 def select_tab(tab_name: str):
     """
     Selects the tab of the dashboard with the given name.
-    If no tab matches the name, this will have no effect on the widgets or tabs in view.
-    If the given name is a number, Elastic will select the tab whose index equals the number provided.
+    If no tab matches the name, this will have no effect on the widgets or
+    tabs in view.
+    If the given name is a number, Elastic will select the tab whose index
+    equals the number provided.
 
     Args:
         tab_name (str) the name of the tab to select
@@ -101,7 +114,9 @@ def select_tab(tab_name: str):
     global __selected_tab_publisher
 
     if not __selected_tab_topic:
-        __selected_tab_topic = NetworkTableInstance.getDefault().getStringTopic(
+        __selected_tab_topic = NetworkTableInstance.getDefault(
+
+        ).getStringTopic(
             "/Elastic/SelectedTab"
         )
     if not __selected_tab_publisher:
@@ -115,7 +130,8 @@ def select_tab(tab_name: str):
 def select_tab_index(tab_index: int):
     """
     Selects the tab of the dashboard at the given index.
-    If this index is greater than or equal to the number of tabs, this will have no effect.
+    If this index is greater than or equal to the number of tabs, this will
+    have no effect.
 
     Args:
         tab_index (int) the index of the tab to select

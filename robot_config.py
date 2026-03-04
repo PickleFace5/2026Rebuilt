@@ -5,12 +5,11 @@ This module detects which robot is running and provides the appropriate hardware
 """
 
 import socket
+import uuid
 from enum import Enum, auto
 from typing import Final
-import uuid
 
 from pykit.logger import Logger
-from wpilib import RobotController
 
 
 class Robot(Enum):
