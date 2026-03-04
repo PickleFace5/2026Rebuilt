@@ -1,3 +1,4 @@
+# pylint: skip-file
 from typing import TYPE_CHECKING, overload
 from phoenix6 import CANBus, configs, hardware, signals, swerve, units
 from wpimath.units import inchesToMeters
@@ -322,11 +323,11 @@ class TunerSwerveDrivetrain(
         :type odometry_update_frequency:    units.hertz
         :param odometry_standard_deviation: The standard deviation for odometry calculation
                                             in the form [x, y, theta]áµ€, with units in meters
-                                            and radians
+                                            and position
         :type odometry_standard_deviation:  tuple[float, float, float]
         :param vision_standard_deviation:   The standard deviation for vision calculation
                                             in the form [x, y, theta]áµ€, with units in meters
-                                            and radians
+                                            and position
         :type vision_standard_deviation:    tuple[float, float, float]
         :param modules:                     Constants for each specific module
         :type modules:                      list[swerve.SwerveModuleConstants]

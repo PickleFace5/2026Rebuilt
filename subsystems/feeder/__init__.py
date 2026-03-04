@@ -1,3 +1,4 @@
+"""Logic abstraction for Feeder IO layers"""
 from enum import IntEnum, auto
 from typing import Final
 
@@ -9,12 +10,15 @@ from subsystems.feeder.io import FeederIO, FeederIOTalonFX, FeederIOSim
 
 __all__ = ["FeederIO", "FeederIOTalonFX", "FeederIOSim", "FeederSubsystem"]
 
+
 class FeederSubsystem(StateSubsystem):
     """
-    The FeederSubsystem is responsible for storage and feeding game pieces into the launcher.
+    The FeederSubsystem is responsible for storage and feeding game pieces
+    into the launcher.
     """
 
     class SubsystemState(IntEnum):
+        """Available subsystem states"""
         STOP = auto()
         INWARD = auto()
 
@@ -30,18 +34,21 @@ class FeederSubsystem(StateSubsystem):
         self._inputs = FeederIO.FeederIOInputs()
 
         # Alert for disconnected motor
-        self._motorDisconnectedAlert = Alert("Feeder motor is disconnected.", Alert.AlertType.kError)
+        self._motor_disconnected_alert = Alert(
+            "Feeder motor is disconnected.",
+            Alert.AlertType.kError
+        )
 
     def periodic(self) -> None:
         """Called periodically to update inputs and log data."""
         # Update inputs from hardware/simulation
-        self._io.updateInputs(self._inputs)
+        self._io.update_inputs(self._inputs)
 
         # Log inputs to PyKit
         Logger.processInputs("Feeder", self._inputs)
 
         # Update alerts
-        self._motorDisconnectedAlert.set(not self._inputs.motorConnected)
+        self._motor_disconnected_alert.set(not self._inputs.motor_connected)
 
         super().periodic()
 
@@ -56,4 +63,4 @@ class FeederSubsystem(StateSubsystem):
         )
 
         # Set motor velocity through IO layer
-        self._io.setMotorRPS(motor_rps)
+        self._io.set_motor_rps(motor_rps)

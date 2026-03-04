@@ -61,7 +61,7 @@ class VisionSubsystem(Subsystem):
         self._linear_std_baseline = Constants.VisionConstants.linear_std_dev_baseline
         self._angular_std_baseline = Constants.VisionConstants.angular_std_dev_baseline
 
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals, too-many-statements
     def periodic(self) -> None:
         """Log and send all observations."""
         inputs = self._inputs

@@ -36,22 +36,29 @@ class HoodSubsystem(StateSubsystem):
         SubsystemState.MANUAL: (False, 0.0)
     }
 
-    def __init__(self, io: HoodIO, robot_pose_supplier: Callable[[], Pose2d]) -> None:
+    def __init__(self,
+                 hood_io: HoodIO,
+                 robot_pose_supplier: Callable[[], Pose2d]
+                 ) -> None:
         super().__init__("Hood", self.SubsystemState.STOW)
 
-        self.io = io
+        self.io = hood_io
         self.alliance = DriverStation.getAlliance()
         self.set_desired_state(HoodSubsystem.SubsystemState.STOW)
 
         self.robot_pose_supplier = robot_pose_supplier
 
         self.inputs = HoodIO.HoodIOInputs()
-        self.hood_disconnected_alert = Alert("Hood motor is disconnected.", Alert.AlertType.kError)
+        self.hood_disconnected_alert = Alert(
+            "Hood motor is disconnected.",
+            Alert.AlertType.kError
+        )
 
-        #self.hub_pose = Constants.FieldConstants.HUB_POSE  # blue hub
+        self.hub_pose = Constants.FieldConstants.HUB_POSE  # blue hub
         self.distance = 1.0
         self.target = 1.0
-        self._aiming_hood_setpoint: Optional[float] = None  # From unified aiming LUT (rotations)
+        self._aiming_hood_setpoint: Optional[
+            float] = None  # From unified aiming LUT (rotations)
 
     def set_aiming_setpoint(self, hood_rotations: Optional[float]) -> None:
         """Set hood angle from unified aiming LUT (rotations, motor units)."""
@@ -61,20 +68,25 @@ class HoodSubsystem(StateSubsystem):
         """Runs stuff periodically (every 20 ms)."""
         self.alliance = DriverStation.getAlliance()
         self.hub_pose = Constants.FieldConstants.HUB_POSE if not (
-            AutoBuilder.shouldFlip()) else FlippingUtil.flipFieldPose(Constants.FieldConstants.HUB_POSE)
+            AutoBuilder.shouldFlip()) else FlippingUtil.flipFieldPose(
+            Constants.FieldConstants.HUB_POSE
+        )
 
         self.io.update_inputs(self.inputs)
 
         if self._auto_aim:
             self.distance = (self.robot_pose_supplier()
-                         .translation().distance(self.hub_pose.translation()))
+            .translation().distance(
+                self.hub_pose.translation()
+            ))
             if self._aiming_hood_setpoint is not None:
-                # LUT value is rotations from zero (hood down); add zero position for absolute motor setpoint
-                self.target = self.inputs.hood_zero_position + self._aiming_hood_setpoint
+                # LUT value is rotations from zero (hood down); add zero
+                # position for absolute motor setpoint
+                self.target = (self.inputs.hood_zero_position +
+                               self._aiming_hood_setpoint)
             else:
                 self.target = Constants.HoodConstants.STOW
             self.io.set_position(self.target)
-
 
         self.hood_disconnected_alert.set(not self.inputs.hood_connected)
 
@@ -94,7 +106,10 @@ class HoodSubsystem(StateSubsystem):
         """get state"""
         return super().get_current_state()
 
-    def rotate_manually(self, axis: float): # Axis is the value of the X-axis from a joystick
+    def rotate_manually(self,
+                        axis: float
+                        ):  # Axis is the value of the X-axis from a joystick
+        """Manually rotates the turret."""
         self.set_desired_state(self.SubsystemState.MANUAL)
         target_velocity = axis * Constants.HoodConstants.MAX_MANUAL_VELOCITY
         self.io.set_velocity(target_velocity)
@@ -104,4 +119,9 @@ class HoodSubsystem(StateSubsystem):
         Gets the articulated component pose for AdvantageScope.
         :param turret: Component pose of the turret
         """
-        return Pose3d(-0.032810, 0, 0.465032, Rotation3d(0, rotationsToRadians(self.inputs.hood_position), 0)).rotateAround(turret.translation(), turret.rotation())
+        return Pose3d(
+            -0.032810,
+            0,
+            0.465032,
+            Rotation3d(0, rotationsToRadians(self.inputs.hood_position), 0)
+        ).rotateAround(turret.translation(), turret.rotation())

@@ -1,3 +1,4 @@
+"""Logic abstraction for Climber IO layers"""
 from enum import IntEnum, auto
 from typing import Final
 
@@ -11,34 +12,42 @@ from subsystems.climber.io import ClimberIO, ClimberIOTalonFX, ClimberIOSim
 
 __all__ = ["ClimberIO", "ClimberIOTalonFX", "ClimberIOSim", "ClimberSubsystem"]
 
+
 class ClimberSubsystem(StateSubsystem):
     """
-    The ClimberSubsystem is responsible for controlling the robot's climber mechanism.
+    The ClimberSubsystem is responsible for controlling the robot's climber
+    mechanism.
     Uses PyKit IO layer for hardware abstraction.
     """
 
     class SubsystemState(IntEnum):
+        """Available subsystem states"""
         STOW = auto()
         EXTEND = auto()
 
     _state_configs: dict[SubsystemState, tuple[float]] = {
-        SubsystemState.STOW: (0.0),
-        SubsystemState.EXTEND: (Constants.ClimberConstants.CLIMB_FULL_THRESHOLD)
+        SubsystemState.STOW: 0.0,
+        SubsystemState.EXTEND: (
+            Constants.ClimberConstants.CLIMB_FULL_THRESHOLD)
     }
 
-    def __init__(self, io: ClimberIO) -> None:
+    def __init__(self, climber_io: ClimberIO) -> None:
         """
         Initialize the climber subsystem.
 
-        :param io: The climber IO implementation (ClimberIOTalonFX for real hardware, ClimberIOSim for simulation)
+        :param climber_io: The climber IO implementation (ClimberIOTalonFX for real
+        hardware, ClimberIOSim for simulation)
         """
         super().__init__("Climber", self.SubsystemState.STOW)
 
-        self._io: Final[ClimberIO] = io
+        self._io: Final[ClimberIO] = climber_io
         self._inputs = ClimberIO.ClimberIOInputs()
 
         # Alert for disconnected motor
-        self._motor_disconnected_alert = Alert("Climber motor is disconnected.", Alert.AlertType.kError)
+        self._motor_disconnected_alert = Alert(
+            "Climber motor is disconnected.",
+            Alert.AlertType.kError
+        )
 
     def periodic(self) -> None:
         """Called periodically to update inputs and log data."""
@@ -64,7 +73,7 @@ class ClimberSubsystem(StateSubsystem):
 
         motor_rotation = self._state_configs.get(
             desired_state,
-            (0.0)
+            0.0
         )
 
         self._io.set_position(motor_rotation)

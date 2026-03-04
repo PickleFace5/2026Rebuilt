@@ -1,3 +1,4 @@
+"""Logic abstraction for Intake IO layers"""
 from enum import IntEnum, auto
 from typing import Final
 
@@ -10,10 +11,12 @@ from subsystems.intake.io import IntakeIO, IntakeIOSim, IntakeIOTalonFX
 
 class IntakeSubsystem(StateSubsystem):
     """
-    The IntakeSubsystem is responsible for controlling the end effector's compliant wheels.
+    The IntakeSubsystem is responsible for controlling the end effector's
+    compliant wheels.
     """
 
     class SubsystemState(IntEnum):
+        """Available subsystem states"""
         STOP = auto()
         INTAKE = auto()
         OUTPUT = auto()
@@ -24,25 +27,28 @@ class IntakeSubsystem(StateSubsystem):
         SubsystemState.OUTPUT: -12.5,
     }
 
-    def __init__(self, io: IntakeIO) -> None:
+    def __init__(self, intake_io: IntakeIO) -> None:
         super().__init__("Intake", self.SubsystemState.STOP)
 
-        self._io: Final[IntakeIO] = io
+        self._io: Final[IntakeIO] = intake_io
         self._inputs = IntakeIO.IntakeIOInputs()
 
         # Alert for disconnected motor
-        self._motorDisconnectedAlert = Alert("Intake motor is disconnected.", Alert.AlertType.kError)
+        self._motor_disconnected_alert = Alert(
+            "Intake motor is disconnected.",
+            Alert.AlertType.kError
+        )
 
     def periodic(self) -> None:
         """Called periodically to update inputs and log data."""
         # Update inputs from hardware/simulation
-        self._io.updateInputs(self._inputs)
+        self._io.update_inputs(self._inputs)
 
         # Log inputs to PyKit
         Logger.processInputs("Intake", self._inputs)
 
         # Update alerts
-        self._motorDisconnectedAlert.set(not self._inputs.motorConnected)
+        self._motor_disconnected_alert.set(not self._inputs.motor_connected)
 
         super().periodic()
 
@@ -51,10 +57,10 @@ class IntakeSubsystem(StateSubsystem):
             return
 
         # Get motor voltage for this state
-        motor_RPS = self._state_configs.get(
+        motor_rps = self._state_configs.get(
             desired_state,
             0.0
         )
 
         # Set motor RPS through IO layer
-        self._io.setMotorRPS(motor_RPS)
+        self._io.set_motor_rps(motor_rps)
