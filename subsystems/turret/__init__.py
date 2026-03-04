@@ -165,9 +165,7 @@ class TurretSubsystem(StateSubsystem):
         while desired_in_range > max_radians:
             desired_in_range -= 2 * pi
 
-        current_turret = rotationsToRadians(
-            self.inputs.turret_position - self.inputs.turret_zero_position
-        )
+        current_turret = rotationsToRadians(self.inputs.turret_position)
         middle = max_radians / 2
         hysteresis_rad = deg_to_rad(
             Constants.TurretConstants.CROSS_MIDDLE_HYSTERESIS_DEGREES
