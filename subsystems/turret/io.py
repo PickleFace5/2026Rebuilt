@@ -79,6 +79,9 @@ class TurretIOTalonFX(TurretIO):
             5,
             lambda: self.turret_motor.configurator.apply(motor_config, 0.25)
         )
+        try_until_ok(5,
+            lambda: self.turret_motor.set_position(0)
+        )
 
         self.position = self.turret_motor.get_position()
         self.velocity = self.turret_motor.get_velocity()

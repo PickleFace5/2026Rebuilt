@@ -88,7 +88,7 @@ class Dwayne(LoggedRobot):
             # Running a physics simulator, log to NT
             case Constants.Mode.SIM:
                 Logger.addDataReciever(NT4Publisher(True))
-                Logger.addDataReciever(WPILOGWriter())
+                #Logger.addDataReciever(WPILOGWriter())
 
             # Replaying a log, set up replay source
             case Constants.Mode.REPLAY:
