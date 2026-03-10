@@ -2,6 +2,7 @@
 import math
 from dataclasses import dataclass
 
+from pykit.logger import Logger
 from wpimath.geometry import Pose2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds
 from wpimath.units import radians, radians_per_second, seconds, meters
@@ -116,6 +117,7 @@ class FiringTable:
         # Now that we know where the goal will be, we can calculate the angle
         # to the goal and return an AimingSample
         angle = math.atan2(future_goal.Y() - robot_pose.Y(), future_goal.X() - robot_pose.X())
+        Logger.recordOutput("FiringTable/Goal", Pose2d(future_goal.X(), future_goal.Y(), angle))
         return AimingSample(
             sample=sample,
             turret_angle=angle
