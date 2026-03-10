@@ -16,7 +16,7 @@ class AimingSample:
     turret_angle: radians
     """
     Turret target angle in radians.
-    0 is facing the opponent alliance's wall, then goes counterclockwise.
+    0 is facing the opponent alliance's wall, CCW positive.
     """
 
 
@@ -27,10 +27,18 @@ class FiringTable:
     Given a distance from the target, we interpolate through the table to find
     the needed launch angle and speed.
     """
-    _MAX_ITERATIONS = 4
+    _MAX_ITERATIONS: int = 4
     """
     Max amount of recursions for dynamic shot calculations.
     Should normally be around 3-5. Lower if lag worsens.
+    """
+
+    _DRAG_CONSTANT: float = 0
+    """
+    https://frc-docs--3242.org.readthedocs.build/en/3242/docs/software/advanced-controls/fire-control/linear-drag.html
+    
+    Can be manually tuned for higher accuracy at high speeds.
+    If 0, ignored.
     """
 
     @dataclass(slots=True, frozen=True)
@@ -131,4 +139,15 @@ class FiringTable:
             hood_angle=a.hood_angle + factor * (b.hood_angle - a.hood_angle),
             flywheel_speed=a.flywheel_speed + factor * (b.flywheel_speed - a.flywheel_speed),
             time_of_flight=a.time_of_flight + factor * (b.time_of_flight - a.time_of_flight)
+        )
+
+    @staticmethod
+    def _effective_time_of_flight(time_of_flight: float) -> float:
+        if FiringTable._DRAG_CONSTANT == 0:
+            return time_of_flight
+        return (
+                (1 - math.exp(
+                    -FiringTable._DRAG_CONSTANT * time_of_flight
+                ))
+                / FiringTable._DRAG_CONSTANT
         )
