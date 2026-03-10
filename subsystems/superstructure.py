@@ -166,6 +166,7 @@ class Superstructure(Subsystem):
                 self.hood.set_aiming_setpoint(sample.hood_angle)
             if self.launcher:
                 self.launcher.set_aiming_setpoint(sample.flywheel_speed)
+
         else:
             if self.turret:
                 self.turret.set_target_field_angle(None)
